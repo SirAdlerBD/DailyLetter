@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dagbriefje</title>
+<meta name="theme-color" content="{{ '#1C1916' if briefing and briefing.version == 'evening' else '#F5F1E8' }}">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/briefje.css">
+</head>
+<body class="{{ 'evening' if briefing and briefing.version == 'evening' else '' }}">
+<main class="page">
+
+  <header class="top">
+    <span>{{ briefing.date_label if briefing else '' }}</span>
+    <span>{{ briefing.generated_label if briefing else '' }}</span>
+  </header>
+
+  {% if briefing %}
+  <section class="lines">
+    {% for line in briefing.lines %}
+      {% if line.detail == 'settings' %}
+        <p><a class="tik" href="/instellingen">{{ line.text }}</a></p>
+      {% elif line.detail %}
+        <p><button class="tik" type="button" data-detail="{{ line.detail }}">{{ line.text }}</button></p>
+      {% else %}
+        <p>{{ line.text }}</p>
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="lines">
+    <p>Er is vandaag nog geen briefje.</p>
+    <p class="quiet">De batchjob maakt er een om 6u30, 12u, 16u30 en 21u. Je kunt er ook nu een maken.</p>
+    <form method="post" action="/refresh"><button class="pill" type="submit">Maak nu een briefje</button></form>
+  </section>
+  {% endif %}
+
+  <footer class="bottom">
+    {% if saved %}<p class="quiet small" role="status">Bewaard.</p>{% endif %}
+    <form class="inbox" method="post" action="/inbox" id="inbox">
+      <label class="hidden" for="inbox-text">Iets kwijt? Taak, idee of feedback</label>
+      <input id="inbox-text" name="text" type="text" maxlength="2000" autocomplete="off" required placeholder="Taak, idee of feedback…">
+      <button type="submit" aria-label="Verstuur">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+    <p class="small"><a class="quiet" href="/instellingen">Instellingen</a></p>
+  </footer>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <button class="sheet-backdrop" type="button" aria-label="Sluiten" data-close></button>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <span class="label" id="sheet-title"></span>
+      <button class="icon" type="button" aria-label="Sluiten" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<script type="application/json" id="details">{{ (briefing.details if briefing else {}) | tojson }}</script>
+<script src="/static/briefje.js"></script>
+</body>
+</html>

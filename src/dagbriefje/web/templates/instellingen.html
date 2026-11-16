@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instellingen · Dagbriefje</title>
+<meta name="theme-color" content="#F5F1E8">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/briefje.css">
+</head>
+<body>
+<main class="page">
+  <header class="top"><a class="quiet" href="/">← Terug naar het briefje</a><span></span></header>
+
+  <section class="lines">
+    <h1>Instellingen</h1>
+
+    {% if message == 'agenda' %}<p class="note" role="status">Je agenda is gekoppeld. Er staat een nieuw briefje klaar.</p>{% endif %}
+    {% if message == 'verwijderd' %}<p class="note" role="status">De koppeling met je agenda is verwijderd.</p>{% endif %}
+    {% if error == 'url' %}<p class="note" role="alert">Dat adres werkt niet. Het moet met https:// of webcal:// beginnen.</p>{% endif %}
+    {% if error == 'key' %}<p class="note" role="alert">De server heeft nog geen geldige DAGBRIEFJE_SECRET_KEY. Zet die eerst in het bestand .env.</p>{% endif %}
+
+    <div class="block">
+      <span class="label">Agenda</span>
+      {% if agenda_connected %}
+        <p>Gekoppeld. Het adres staat versleuteld in de database en wordt hier niet meer getoond.</p>
+      {% else %}
+        <p>Nog niet gekoppeld.</p>
+      {% endif %}
+      <form method="post" action="/instellingen/agenda" class="stack">
+        <label for="url" class="quiet small">Geheim iCal-adres. In Google Calendar: Instellingen, je agenda, "Geheim adres in iCal-indeling".</label>
+        <input id="url" name="url" type="url" required autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics">
+        <button class="pill dark" type="submit">{{ 'Vervang het adres' if agenda_connected else 'Koppel je agenda' }}</button>
+      </form>
+      {% if agenda_connected %}
+      <form method="post" action="/instellingen/agenda/verwijder"><button class="pill" type="submit">Verwijder de koppeling</button></form>
+      {% endif %}
+    </div>
+
+    <div class="block">
+      <span class="label">Jij</span>
+      <p>{{ user.display_name }} · {{ user.timezone }}</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

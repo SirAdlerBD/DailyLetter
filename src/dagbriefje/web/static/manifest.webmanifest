@@ -1,0 +1,12 @@
+{
+  "name": "Dagbriefje",
+  "short_name": "Dagbriefje",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F1E8",
+  "theme_color": "#F5F1E8",
+  "lang": "nl",
+  "icons": [
+    { "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

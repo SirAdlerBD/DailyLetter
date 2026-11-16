@@ -1,0 +1,11 @@
+# De batchjob: maakt één briefje voor elke gebruiker en stopt dan.
+# Welke versie (ochtend, middag, vooravond, avond) volgt uit het uur.
+
+[Unit]
+Description=Dagbriefje batchjob
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/dagbriefje
+ExecStart=%h/dagbriefje/.venv/bin/dagbriefje run

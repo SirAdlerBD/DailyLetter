@@ -1,0 +1,14 @@
+# Vier briefjes per dag. Pas de uren of de tijdzone hier aan.
+
+[Unit]
+Description=Dagbriefje, vier keer per dag
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 Europe/Brussels
+OnCalendar=*-*-* 12:00:00 Europe/Brussels
+OnCalendar=*-*-* 16:30:00 Europe/Brussels
+OnCalendar=*-*-* 21:00:00 Europe/Brussels
+Persistent=true
+
+[Install]
+WantedBy=timers.target
