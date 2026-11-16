@@ -2,10 +2,10 @@
 # Welke versie (ochtend, middag, vooravond, avond) volgt uit het uur.
 
 [Unit]
-Description=Dagbriefje batchjob
+Description=DailyLetter batchjob
 After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/dagbriefje
-ExecStart=%h/dagbriefje/.venv/bin/dagbriefje run
+WorkingDirectory=%h/DailyLetter
+ExecStart=%h/DailyLetter/.venv/bin/dailyletter run

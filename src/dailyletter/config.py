@@ -36,17 +36,17 @@ class Settings:
 
     @property
     def db_path(self) -> Path:
-        return self.data_dir / "dagbriefje.sqlite3"
+        return self.data_dir / "dailyletter.sqlite3"
 
 
 def get_settings() -> Settings:
-    load_env_file(os.environ.get("DAGBRIEFJE_ENV_FILE", ".env"))
+    load_env_file(os.environ.get("DAILYLETTER_ENV_FILE", ".env"))
     return Settings(
-        data_dir=Path(os.environ.get("DAGBRIEFJE_DATA_DIR", "./data")).expanduser(),
-        secret_key=os.environ.get("DAGBRIEFJE_SECRET_KEY", ""),
-        timezone=os.environ.get("DAGBRIEFJE_TIMEZONE", "Europe/Brussels"),
-        host=os.environ.get("DAGBRIEFJE_HOST", "127.0.0.1"),
-        port=int(os.environ.get("DAGBRIEFJE_PORT", "8321")),
+        data_dir=Path(os.environ.get("DAILYLETTER_DATA_DIR", "./data")).expanduser(),
+        secret_key=os.environ.get("DAILYLETTER_SECRET_KEY", ""),
+        timezone=os.environ.get("DAILYLETTER_TIMEZONE", "Europe/Brussels"),
+        host=os.environ.get("DAILYLETTER_HOST", "127.0.0.1"),
+        port=int(os.environ.get("DAILYLETTER_PORT", "8321")),
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         openai_model=os.environ.get("OPENAI_MODEL", ""),
     )

@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from dagbriefje import compose, crypto, db, pipeline
-from dagbriefje.sources.agenda_ical import parse_ics
+from dailyletter import compose, crypto, db, pipeline
+from dailyletter.sources.agenda_ical import parse_ics
 
 from .conftest import SAMPLE_ICS, at
 

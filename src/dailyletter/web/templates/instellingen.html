@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Instellingen · Dagbriefje</title>
+<title>Instellingen · DailyLetter</title>
 <meta name="theme-color" content="#F5F1E8">
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500&display=swap">
@@ -19,7 +19,7 @@
     {% if message == 'agenda' %}<p class="note" role="status">Je agenda is gekoppeld. Er staat een nieuw briefje klaar.</p>{% endif %}
     {% if message == 'verwijderd' %}<p class="note" role="status">De koppeling met je agenda is verwijderd.</p>{% endif %}
     {% if error == 'url' %}<p class="note" role="alert">Dat adres werkt niet. Het moet met https:// of webcal:// beginnen.</p>{% endif %}
-    {% if error == 'key' %}<p class="note" role="alert">De server heeft nog geen geldige DAGBRIEFJE_SECRET_KEY. Zet die eerst in het bestand .env.</p>{% endif %}
+    {% if error == 'key' %}<p class="note" role="alert">De server heeft nog geen geldige DAILYLETTER_SECRET_KEY. Zet die eerst in het bestand .env.</p>{% endif %}
 
     <div class="block">
       <span class="label">Agenda</span>

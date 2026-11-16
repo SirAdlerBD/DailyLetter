@@ -30,7 +30,7 @@ def migrate(conn: sqlite3.Connection) -> list[str]:
         "CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)"
     )
     done = {row["name"] for row in conn.execute("SELECT name FROM schema_migrations")}
-    folder = resources.files("dagbriefje") / "migrations"
+    folder = resources.files("dailyletter") / "migrations"
     applied = []
     for file in sorted(folder.iterdir(), key=lambda f: f.name):
         if not file.name.endswith(".sql") or file.name in done:

@@ -1,4 +1,4 @@
-# Dagbriefje
+# DailyLetter
 
 Eén rustige pagina die je op elk moment van de dag opent en die in een paar zinnen zegt wat er speelt.
 Een batchjob maakt het briefje, een web-app toont het.
@@ -18,21 +18,23 @@ Nog niet: Garmin, Saxo, nieuws, het taalmodel, taken, timer, eten, de avondvraag
 
 ## Installeren op de server
 
+Vooraf nodig: Python 3.11 of nieuwer met `python3-venv`, en Tailscale op de server en op je eigen toestellen.
+
 ```bash
-git clone https://github.com/SirAdlerBD/DailyLetter ~/dagbriefje && cd ~/dagbriefje
+git clone https://github.com/SirAdlerBD/DailyLetter ~/DailyLetter && cd ~/DailyLetter
 python3 -m venv .venv
 .venv/bin/pip install .
 
 cp .env.example .env
-.venv/bin/dagbriefje gen-key        # plak de uitkomst in .env bij DAGBRIEFJE_SECRET_KEY
+.venv/bin/dailyletter gen-key        # plak de uitkomst in .env bij DAILYLETTER_SECRET_KEY
 chmod 600 .env
 
-.venv/bin/dagbriefje init
-.venv/bin/dagbriefje user add cedric --display-name Cedric
-.venv/bin/dagbriefje serve          # test: http://127.0.0.1:8321
+.venv/bin/dailyletter init
+.venv/bin/dailyletter user add cedric --display-name Cedric
+.venv/bin/dailyletter serve          # test: http://127.0.0.1:8321
 ```
 
-Bewaar `DAGBRIEFJE_SECRET_KEY` ook ergens veilig buiten de server.
+Bewaar `DAILYLETTER_SECRET_KEY` ook ergens veilig buiten de server.
 Zonder die sleutel zijn de bewaarde koppelingen niet meer te lezen.
 
 ### Alleen bereikbaar voor jouw toestellen
@@ -50,9 +52,9 @@ Werkt het commando anders bij jouw versie, kijk dan in `tailscale serve --help`.
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp deploy/dagbriefje-*.service deploy/dagbriefje-*.timer ~/.config/systemd/user/
+cp deploy/dailyletter-*.service deploy/dailyletter-*.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now dagbriefje-web.service dagbriefje-run.timer
+systemctl --user enable --now dailyletter-web.service dailyletter-run.timer
 loginctl enable-linger "$USER"      # blijft draaien als je uitlogt
 ```
 
@@ -65,15 +67,15 @@ Het adres wordt versleuteld bewaard en daarna nergens meer getoond.
 Het kan ook vanaf de server, zonder dat het adres in je shell-geschiedenis komt:
 
 ```bash
-.venv/bin/dagbriefje connect cedric agenda
+.venv/bin/dailyletter connect cedric agenda
 ```
 
 ## Handige commando's
 
 ```bash
-.venv/bin/dagbriefje run --show                    # maak nu een briefje en toon de zinnen
-.venv/bin/dagbriefje run --version evening --show  # een bepaalde versie
-journalctl --user -u dagbriefje-run.service        # wat de batchjob deed
+.venv/bin/dailyletter run --show                    # maak nu een briefje en toon de zinnen
+.venv/bin/dailyletter run --version evening --show  # een bepaalde versie
+journalctl --user -u dailyletter-run.service        # wat de batchjob deed
 ```
 
 ## Waar staat wat
@@ -84,10 +86,10 @@ journalctl --user -u dagbriefje-run.service        # wat de batchjob deed
 | Persoonlijke koppelingen | tabel `connections`, versleuteld |
 | Voorkeuren per gebruiker | tabel `settings` |
 | Alles wat van een gebruiker is | de database, elke rij met `user_id` |
-| Zinnen van het briefje | `src/dagbriefje/texts_nl.py` |
-| Regels en hun standaardwaarden | `src/dagbriefje/decide.py` |
+| Zinnen van het briefje | `src/dailyletter/texts_nl.py` |
+| Regels en hun standaardwaarden | `src/dailyletter/decide.py` |
 
-In de code staat niets persoonlijks. Een nieuwe bron is een klasse in `src/dagbriefje/sources/`
+In de code staat niets persoonlijks. Een nieuwe bron is een klasse in `src/dailyletter/sources/`
 die dezelfde feiten teruggeeft; de rest van het briefje verandert daar niet door.
 
 ## Ontwikkelen

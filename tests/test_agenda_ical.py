@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from dagbriefje.sources.agenda_ical import InvalidCalendarUrl, normalize_url, parse_ics
+from dailyletter.sources.agenda_ical import InvalidCalendarUrl, normalize_url, parse_ics
 
 from .conftest import SAMPLE_ICS, TZ
 

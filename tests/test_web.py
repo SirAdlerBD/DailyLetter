@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from dagbriefje import crypto, db, pipeline
-from dagbriefje.web.app import create_app
+from dailyletter import crypto, db, pipeline
+from dailyletter.web.app import create_app
 
 class TodayAgenda:
     """One meeting on whatever day the test runs, so the page always has something to show."""
@@ -20,7 +20,7 @@ class TodayAgenda:
 
 @pytest.fixture
 def client(settings, conn, user, monkeypatch):
-    monkeypatch.delenv("DAGBRIEFJE_USER", raising=False)
+    monkeypatch.delenv("DAILYLETTER_USER", raising=False)
     # The web app triggers the pipeline; keep it off the network.
     monkeypatch.setattr(pipeline, "DEFAULT_SOURCES", [TodayAgenda()])
     return TestClient(create_app(settings), follow_redirects=False)

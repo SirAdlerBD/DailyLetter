@@ -1,7 +1,7 @@
 # Vier briefjes per dag. Pas de uren of de tijdzone hier aan.
 
 [Unit]
-Description=Dagbriefje, vier keer per dag
+Description=DailyLetter, vier keer per dag
 
 [Timer]
 OnCalendar=*-*-* 06:30:00 Europe/Brussels

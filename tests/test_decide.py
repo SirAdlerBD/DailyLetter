@@ -1,8 +1,8 @@
 from datetime import date
 
-from dagbriefje import decide
-from dagbriefje.sources.agenda_ical import parse_ics
-from dagbriefje.sources.base import FRESH, MISSING, SourceResult
+from dailyletter import decide
+from dailyletter.sources.agenda_ical import parse_ics
+from dailyletter.sources.base import FRESH, MISSING, SourceResult
 
 from .conftest import SAMPLE_ICS, TZ, at
 

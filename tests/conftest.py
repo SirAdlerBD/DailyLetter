@@ -3,14 +3,14 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from dagbriefje import crypto, db
-from dagbriefje.config import Settings
+from dailyletter import crypto, db
+from dailyletter.config import Settings
 
 TZ = ZoneInfo("Europe/Brussels")
 
 SAMPLE_ICS = """BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//test//dagbriefje//NL
+PRODID:-//test//dailyletter//NL
 BEGIN:VEVENT
 UID:intake@test
 SUMMARY:Intake RPA-traject

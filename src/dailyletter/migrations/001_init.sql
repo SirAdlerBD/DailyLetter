@@ -9,7 +9,7 @@ CREATE TABLE users (
     created_at   TEXT NOT NULL
 );
 
--- Persoonlijke koppelingen. `secret_enc` is versleuteld met DAGBRIEFJE_SECRET_KEY.
+-- Persoonlijke koppelingen. `secret_enc` is versleuteld met DAILYLETTER_SECRET_KEY.
 CREATE TABLE connections (
     id         INTEGER PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

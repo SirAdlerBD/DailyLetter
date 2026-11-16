@@ -25,7 +25,7 @@ def cmd_init(args, settings) -> int:
     print(f"Database: {settings.db_path}")
     print("Migraties toegepast: " + (", ".join(applied) if applied else "geen nieuwe"))
     if not settings.secret_key:
-        print("Let op: DAGBRIEFJE_SECRET_KEY is nog leeg. Maak een sleutel met: dagbriefje gen-key")
+        print("Let op: DAILYLETTER_SECRET_KEY is nog leeg. Maak een sleutel met: dailyletter gen-key")
     return 0
 
 
@@ -63,7 +63,7 @@ def cmd_run(args, settings) -> int:
     conn = _conn(settings)
     users = db.list_users(conn) if args.user is None else [db.get_user(conn, args.user)]
     if not users or users[0] is None:
-        print("Geen gebruiker gevonden. Maak er een met: dagbriefje user add <naam>", file=sys.stderr)
+        print("Geen gebruiker gevonden. Maak er een met: dailyletter user add <naam>", file=sys.stderr)
         return 1
     failed = 0
     for user in users:
@@ -90,11 +90,11 @@ def cmd_serve(args, settings) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="dagbriefje", description="Een rustig dagbriefje.")
+    parser = argparse.ArgumentParser(prog="dailyletter", description="Een rustig dagelijks briefje.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("init", help="maak de database aan of werk ze bij").set_defaults(func=cmd_init)
-    sub.add_parser("gen-key", help="maak een sleutel voor DAGBRIEFJE_SECRET_KEY").set_defaults(func=cmd_gen_key)
+    sub.add_parser("gen-key", help="maak een sleutel voor DAILYLETTER_SECRET_KEY").set_defaults(func=cmd_gen_key)
 
     user = sub.add_parser("user", help="gebruikers beheren").add_subparsers(dest="user_command", required=True)
     add = user.add_parser("add", help="maak een gebruiker")

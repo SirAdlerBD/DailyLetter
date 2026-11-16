@@ -15,11 +15,11 @@ def generate_key() -> str:
 
 def _fernet(secret_key: str) -> Fernet:
     if not secret_key:
-        raise SecretKeyError("DAGBRIEFJE_SECRET_KEY is leeg. Maak een sleutel met: dagbriefje gen-key")
+        raise SecretKeyError("DAILYLETTER_SECRET_KEY is leeg. Maak een sleutel met: dailyletter gen-key")
     try:
         return Fernet(secret_key.encode())
     except ValueError as exc:
-        raise SecretKeyError("DAGBRIEFJE_SECRET_KEY is geen geldige sleutel.") from exc
+        raise SecretKeyError("DAILYLETTER_SECRET_KEY is geen geldige sleutel.") from exc
 
 
 def encrypt(secret_key: str, plain: str) -> str:

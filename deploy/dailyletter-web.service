@@ -1,16 +1,16 @@
 # De web-app. Installeer als gebruikersdienst:
-#   cp deploy/dagbriefje-*.{service,timer} ~/.config/systemd/user/
+#   cp deploy/dailyletter-*.{service,timer} ~/.config/systemd/user/
 #   systemctl --user daemon-reload
-#   systemctl --user enable --now dagbriefje-web.service dagbriefje-run.timer
+#   systemctl --user enable --now dailyletter-web.service dailyletter-run.timer
 # %h is je thuismap, dus er staat geen gebruikersnaam of pad vast in dit bestand.
 
 [Unit]
-Description=Dagbriefje web-app
+Description=DailyLetter web-app
 After=network-online.target
 
 [Service]
-WorkingDirectory=%h/dagbriefje
-ExecStart=%h/dagbriefje/.venv/bin/dagbriefje serve
+WorkingDirectory=%h/DailyLetter
+ExecStart=%h/DailyLetter/.venv/bin/dailyletter serve
 Restart=on-failure
 RestartSec=5
 

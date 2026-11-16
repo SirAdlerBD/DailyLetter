@@ -1,6 +1,6 @@
 {
-  "name": "Dagbriefje",
-  "short_name": "Dagbriefje",
+  "name": "DailyLetter",
+  "short_name": "DailyLetter",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F1E8",

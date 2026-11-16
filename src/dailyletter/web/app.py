@@ -27,7 +27,7 @@ MAX_INBOX_LENGTH = 2000
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    app = FastAPI(title="Dagbriefje", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="DailyLetter", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=HERE / "templates")
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 
@@ -47,7 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         This is the single place to change when real accounts arrive.
         """
-        name = os.environ.get("DAGBRIEFJE_USER")
+        name = os.environ.get("DAILYLETTER_USER")
         if name:
             user = db.get_user(conn, name)
         else:
@@ -55,7 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             user = users[0] if len(users) == 1 else None
         if user is None:
             raise HTTPException(
-                503, "Er is nog geen gebruiker. Maak er een met: dagbriefje user add <naam>"
+                503, "Er is nog geen gebruiker. Maak er een met: dailyletter user add <naam>"
             )
         return user
 
