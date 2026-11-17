@@ -99,7 +99,8 @@ Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
 - **Rustig en korter** bij een oplopende belasting (1,3 tot 1,5), twee zwakke signalen tegelijk,
   of een zware sessie in de laatste twee dagen.
 - Daarna het patroon: nooit drie dagen op rij impact (lopen, tennis, padel), een rustdag na zes
-  trainingsdagen, en je looptotaal per week hooguit 10% boven je gemiddelde van de laatste vier weken.
+  trainingsdagen, en je looptotaal per week hooguit 10% boven je gemiddelde van de laatste vier weken,
+  of tot je weekdoel uit `week_km_target` als dat hoger ligt.
 - Zonder slaapdata van vannacht geeft het briefje geen advies, maar vraagt het om te synchroniseren.
 
 ## Instellingen per gebruiker
@@ -115,6 +116,7 @@ Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
 | --- | --- | --- |
 | `long_run_day` | geen | Dag voor de lange run: `monday` tot `sunday` |
 | `max_week_increase` | `0.1` | Hoeveel je looptotaal per week mag stijgen |
+| `week_km_target` | geen | Je looptotaal deze week volgens je trainingsplan. Het briefje mikt nooit lager, ook als je vier-wekengemiddelde lager ligt |
 | `min_run_km` | `4.0` | Korter dan dit stelt het briefje geen run voor |
 | `default_run_km` | `5.0` | Afstand zolang er nog geen loopgeschiedenis is |
 | `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |

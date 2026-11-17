@@ -81,7 +81,8 @@
       week.append(
         el('span', 'label', 'Deze week'),
         strip,
-        el('p', 'quiet small', 'Gelopen: ' + data.run_km_week + ' km. Gemiddeld per week: ' + data.run_km_avg + ' km.'),
+        el('p', 'quiet small', 'Gelopen: ' + data.run_km_week + ' km. Gemiddeld per week: ' + data.run_km_avg + ' km.'
+          + (data.run_km_target ? ' Doel uit je plan: ' + data.run_km_target + ' km.' : '')),
       );
       parts.push(week);
 

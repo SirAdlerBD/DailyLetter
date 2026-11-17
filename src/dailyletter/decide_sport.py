@@ -7,7 +7,8 @@ The rules follow the coach agreements: injury prevention first, then as much loa
               or a hard session in the last two days
     green  -> build safely
 Then the pattern: never three impact days in a row, at least one day without training per week,
-and the week's running volume at most about 10% above the 4-week average.
+and the week's running volume at most about 10% above the 4-week average, or up to the week
+target from your training plan when that is higher.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from .sources.base import FRESH, MISSING, STALE, SourceResult
 DEFAULTS = {
     "long_run_day": None,        # "saturday", "sunday", ... or None for no fixed long run
     "max_week_increase": 0.10,   # running km over the 4-week average
+    "week_km_target": None,      # this week's running km from your training plan; never aim lower
     "min_run_km": 4.0,           # shorter than this is not worth suggesting
     "default_run_km": 5.0,       # used when there is no running history yet
 }
@@ -98,6 +100,7 @@ class SportDecision:
     run_km_week_avg: float = 0.0
     fetched_at: str | None = None
     fresh_today: bool = False
+    week_km_target: float | None = None
 
     @property
     def available(self) -> bool:
@@ -166,7 +169,8 @@ def _streak(today: date, past: list[Activity], counts) -> int:
 
 
 def decide_sport(result: SourceResult, now: datetime, prefs: dict) -> SportDecision:
-    decision = SportDecision(status=result.status, fetched_at=result.fetched_at)
+    decision = SportDecision(status=result.status, fetched_at=result.fetched_at,
+                             week_km_target=prefs.get("week_km_target"))
     if result.facts is None:
         return decision
 
@@ -214,7 +218,12 @@ def decide_sport(result: SourceResult, now: datetime, prefs: dict) -> SportDecis
         decision.reasons.append(Reason("impact_streak", {"days": impact_streak}))
         return decision
 
-    cap = max(decision.run_km_week_avg * (1 + prefs["max_week_increase"]), prefs["min_run_km"] * 3)
+    # The week may grow about 10% over the 4-week average, but never stays below the plan's target.
+    cap = max(
+        decision.run_km_week_avg * (1 + prefs["max_week_increase"]),
+        prefs["min_run_km"] * 3,
+        float(prefs.get("week_km_target") or 0),
+    )
     budget = cap - decision.run_km_7d
     long_day = prefs.get("long_run_day")
     longest = max((a.distance_km for a in runs), default=typical)

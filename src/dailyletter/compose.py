@@ -246,6 +246,7 @@ def _sport_details(sport: SportDecision, now: datetime) -> dict:
         "week": week,
         "run_km_week": nl.number(sum(a.distance_km or 0 for _, acts in sport.week for a in acts if a.group == "running")),
         "run_km_avg": nl.number(sport.run_km_week_avg),
+        "run_km_target": nl.number(float(sport.week_km_target)) if sport.week_km_target else None,
         "note": NOTE_COMPUTED,
     }
 

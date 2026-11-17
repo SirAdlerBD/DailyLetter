@@ -240,3 +240,12 @@ def test_the_panel_does_not_repeat_the_reason_in_its_headline(conn, settings, us
     _, payload = letter(conn, settings, user, facts(sleep=(5.3, 50), battery=40))
     reasons = payload["details"]["sport"]["reasons"]
     assert "Je sliep maar 5u18." not in reasons
+
+
+def test_the_plan_week_target_lifts_a_low_four_week_average():
+    # Little running in the last weeks: about 7 km a week, already 9 km in the last 6 days.
+    low = [act(d, km=6.0) for d in (25, 18, 11)] + [act(5, km=4.5), act(3, km=4.5)]
+    assert run(facts(acts=low)).session == STRENGTH
+
+    d = run(facts(acts=low), prefs={**PREFS, "week_km_target": 20})
+    assert (d.session, d.km) == (EASY_RUN, 6.0)
