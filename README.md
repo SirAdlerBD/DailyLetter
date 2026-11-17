@@ -121,6 +121,15 @@ Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
 | `default_run_km` | `5.0` | Afstand zolang er nog geen loopgeschiedenis is |
 | `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |
 
+## Bijwerken op de server
+
+```bash
+~/DailyLetter/deploy/update.sh
+```
+
+Haalt de nieuwe code op, installeert ze in `.venv`, werkt de database bij en herstart de web-app.
+Is er niets nieuws, dan doet het niets; `--force` installeert toch opnieuw.
+
 ## Handige commando's
 
 ```bash
@@ -143,9 +152,31 @@ journalctl --user -u dailyletter-run.service        # wat de batchjob deed
 In de code staat niets persoonlijks. Een nieuwe bron is een klasse in `src/dailyletter/sources/`
 die dezelfde feiten teruggeeft; de rest van het briefje verandert daar niet door.
 
-## Ontwikkelen
+## Ontwikkelen op je eigen pc (Windows)
 
-```bash
-.venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest
+Eenmalig, in PowerShell, met Git, Python 3.11 of nieuwer en VS Code geïnstalleerd:
+
+```powershell
+git clone https://github.com/SirAdlerBD/DailyLetter $HOME\code\DailyLetter
+cd $HOME\code\DailyLetter
+py -m venv .venv
+.venv\Scripts\pip install -e ".[dev]"
+copy .env.example .env      # zet er een eigen DAILYLETTER_SECRET_KEY in (gen-key)
+.venv\Scripts\dailyletter init
+.venv\Scripts\dailyletter user add cedric --display-name Cedric
+code .
 ```
+
+`-e` installeert in bewerkbare modus: wat je in `src` wijzigt, werkt meteen, zonder opnieuw te installeren.
+Je lokale database staat in `data/` en heeft niets met die op de server te maken.
+
+Daarna, elke keer:
+
+```powershell
+git pull                                  # eerst ophalen wat er intussen veranderde
+.venv\Scripts\python -m pytest            # tests
+.venv\Scripts\dailyletter serve           # bekijk het op http://127.0.0.1:8321
+```
+
+Committen en pushen kan in VS Code via Source Control (Ctrl+Shift+G). Daarna op de server:
+`~/DailyLetter/deploy/update.sh`.
