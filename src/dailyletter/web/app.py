@@ -131,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 # Names only. The addresses are secrets and never go back to the browser.
                 "calendars": [c["label"] for c in calendars],
                 "garmin_connected": db.get_connection(conn, user["id"], "garmin") is not None,
+                "saxo_connected": db.get_connection(conn, user["id"], "saxo") is not None,
                 "user_name": user["name"],
                 "max_calendars": agenda_ical.MAX_CALENDARS,
                 "message": request.query_params.get("m"),

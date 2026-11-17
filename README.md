@@ -14,7 +14,7 @@ Fase 0 en het eerste deel van fase 1 uit het conceptueel ontwerp:
 - Valt een bron uit, dan gebruikt het briefje het laatste goede antwoord en zegt het dat erbij.
 - Pagina met het briefje, een detailpaneel voor je agenda, het invulbalkje en een instellingenpagina.
 
-Nog niet: Saxo, nieuws, het taalmodel, taken, timer, eten, de avondvraag.
+Nog niet: nieuws, de vraag en les van de dag, het taalmodel, taken, timer, eten, de avondvraag.
 
 ## Installeren op de server
 
@@ -103,6 +103,28 @@ Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
   of tot je weekdoel uit `week_km_target` als dat hoger ligt.
 - Zonder slaapdata van vannacht geeft het briefje geen advies, maar vraagt het om te synchroniseren.
 
+## Saxo koppelen
+
+DailyLetter leest je portefeuille uit je eigen [Saxo-MCP](https://github.com/SirAdlerBD/saxo-mcp),
+de LIVE-versie die op dezelfde server draait. Het mag daarvan alleen `get_balances`, `get_positions`
+en `get_account_history` aanroepen; elke andere tool wordt geweigerd voor ze vertrekt. Je Saxo-MCP
+blokkeert handelen bovendien zelf.
+
+```bash
+.venv/bin/dailyletter connect cedric saxo --from-env ~/saxo-mcp-live/.env --url http://127.0.0.1:3001/mcp
+```
+
+Kijk met `pm2 ls` en `sudo ss -tlnp` welke poort je LIVE-server gebruikt.
+
+Wat het briefje toont:
+
+- 's Ochtends: hoe je portefeuille bewoog op de laatste beursdag en deze week, plus de positie die
+  het meest bewoog als dat minstens 3% was. 's Avonds: de beweging van vandaag.
+- Het paneel: de waarde (verborgen tot je op het oog tikt), je rendement van de laatste beursdag,
+  deze week en dit jaar (tijdgewogen, dus stortingen tellen niet mee), je posities met hun gewicht,
+  en je grootste losse aandeel als dat boven 20% zit. Fondsen tellen daar niet mee.
+- Verloopt je Saxo-login, dan zegt het briefje dat. Log dan opnieuw in zoals bij je Saxo-MCP.
+
 ## Instellingen per gebruiker
 
 ```bash
@@ -119,6 +141,8 @@ Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
 | `week_km_target` | geen | Je looptotaal deze week volgens je trainingsplan. Het briefje mikt nooit lager, ook als je vier-wekengemiddelde lager ligt |
 | `min_run_km` | `4.0` | Korter dan dit stelt het briefje geen run voor |
 | `default_run_km` | `5.0` | Afstand zolang er nog geen loopgeschiedenis is |
+| `portfolio_mover_pct` | `3.0` | Vanaf welke dagbeweging (in %) een positie genoemd wordt |
+| `portfolio_concentration_pct` | `20.0` | Vanaf welk gewicht (in %) je grootste losse aandeel vermeld wordt |
 | `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |
 
 ## Bijwerken op de server

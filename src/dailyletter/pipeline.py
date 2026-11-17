@@ -6,12 +6,12 @@ import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import compose, db, decide, decide_sport
+from . import compose, db, decide, decide_portfolio, decide_sport
 from .config import Settings
 from .sources import DEFAULT_SOURCES, Source, SourceResult, Window, collect
 from .sources.base import MISSING
 
-ALL_DEFAULTS = {**decide.DEFAULTS, **decide_sport.DEFAULTS}
+ALL_DEFAULTS = {**decide.DEFAULTS, **decide_sport.DEFAULTS, **decide_portfolio.DEFAULTS}
 
 
 def user_prefs(conn: sqlite3.Connection, user_id: int) -> dict:
@@ -38,8 +38,9 @@ def run_for_user(
     missing = lambda name: results.get(name) or SourceResult(name, MISSING)  # noqa: E731
     agenda = decide.decide_agenda(missing("agenda"), now, prefs)
     sport = decide_sport.decide_sport(missing("garmin"), now, prefs)
+    portfolio = decide_portfolio.decide_portfolio(missing("saxo"), now, prefs)
 
-    payload = compose.write_from_templates(version, now, user["display_name"], agenda, prefs, sport)
+    payload = compose.write_from_templates(version, now, user["display_name"], agenda, prefs, sport, portfolio)
     compose.validate(payload)
     db.save_briefing(conn, user["id"], payload["date"], version, payload, writer="template", fallback=False)
     return payload

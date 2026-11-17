@@ -10,13 +10,14 @@ from datetime import datetime
 
 from . import texts_nl as nl
 from .decide import AgendaDecision, Event
+from .decide_portfolio import PortfolioDecision, last_session_word
 from .decide_sport import (
     EASY_RUN, LONG_RUN, RED, REST, SHORT_RUN, STRENGTH, UNKNOWN, Activity, Reason, SportDecision,
 )
 from .sources.base import STALE
 
 FAR_MINUTES = 90
-ALLOWED_DETAILS = {None, "agenda", "sport", "settings"}
+ALLOWED_DETAILS = {None, "agenda", "sport", "portfolio", "settings"}
 MAX_LINES = 10
 MAX_LINE_LENGTH = 240
 NOTE_COMPUTED = "Herstel en belasting zijn berekend door je Garmin-MCP, niet door Garmins eigen Training Readiness."
@@ -251,6 +252,70 @@ def _sport_details(sport: SportDecision, now: datetime) -> dict:
     }
 
 
+# --- portfolio --------------------------------------------------------------
+
+def _portfolio_lines(version: str, pf: PortfolioDecision, now: datetime) -> list[dict]:
+    if not pf.available:
+        return []
+    if pf.login_expired:
+        return [_line("portfolio", nl.T["portfolio.login"])] if version == "morning" else []
+    if not pf.fresh_today:
+        has_panel = bool(pf.holdings or pf.total_value is not None)
+        return [_line("portfolio", nl.T["portfolio.stale"], "portfolio" if has_panel else None)] if version == "morning" else []
+
+    day = nl.signed_pct(pf.day_pct) if pf.day_pct is not None else None
+    week = nl.signed_pct(pf.week_pct) if pf.week_pct is not None else None
+    if version == "morning":
+        when = last_session_word(now.date())
+        if day and week:
+            text = nl.T["portfolio.morning"].format(when=when, day=day, week=week)
+        elif day:
+            text = nl.T["portfolio.morning_day"].format(when=when, day=day)
+        elif week:
+            text = nl.T["portfolio.morning_week"].format(week=week)
+        else:
+            return []
+    elif version == "evening" and day:
+        text = nl.T["portfolio.evening"].format(day=day)
+    else:
+        return []
+    if pf.movers:
+        mover = pf.movers[0]
+        text += nl.T["portfolio.mover"].format(name=mover.name, move=nl.signed_pct(mover.day_pct))
+    return [_line("portfolio", text, "portfolio")]
+
+
+def _portfolio_details(pf: PortfolioDecision, version: str, now: datetime) -> dict:
+    day_label = last_session_word(now.date()).capitalize() if version == "morning" else "Vandaag"
+    returns = []
+    for label, value in ((day_label, pf.day_pct), ("Deze week", pf.week_pct), ("Dit jaar", pf.ytd_pct)):
+        if value is not None:
+            returns.append({"k": label, "v": nl.signed_pct(value)})
+    money = lambda v: nl.money(v, pf.currency) if v is not None else None  # noqa: E731
+    return {
+        "fresh": pf.fresh_today,
+        "total": money(pf.total_value),
+        "cash": money(pf.cash),
+        "orders": pf.open_orders,
+        "returns": returns,
+        "positions": [
+            {
+                "name": h.name,
+                "symbol": h.symbol or "",
+                "weight": nl.pct(h.weight_pct) if h.weight_pct is not None else "",
+                "day": nl.signed_pct(h.day_pct) if h.day_pct is not None else "",
+                "pl": nl.signed_pct(h.pl_pct) if h.pl_pct is not None else "",
+                "value": money(h.value) or "",
+            }
+            for h in pf.holdings
+        ],
+        "insights": [
+            nl.T["portfolio.concentrated"].format(name=h.name, weight=nl.pct(h.weight_pct)) for h in pf.concentrated
+        ],
+        "note": nl.T["portfolio.note"],
+    }
+
+
 def write_from_templates(
     version: str,
     now: datetime,
@@ -258,8 +323,10 @@ def write_from_templates(
     agenda: AgendaDecision,
     prefs: dict,
     sport: SportDecision | None = None,
+    portfolio: PortfolioDecision | None = None,
 ) -> dict:
     sport = sport or SportDecision(status="missing")
+    portfolio = portfolio or PortfolioDecision(status="missing")
     lines = [_line("greeting", nl.GREETING[version].format(name=display_name))]
 
     if version == "morning":
@@ -285,6 +352,7 @@ def write_from_templates(
                 names=nl.join_names(agenda.failed_calendars)), "settings"))
 
     lines += _sport_lines(version, sport)
+    lines += _portfolio_lines(version, portfolio, now)
 
     details = {}
     if agenda.available:
@@ -294,6 +362,8 @@ def write_from_templates(
         }
     if sport.available and sport.facts:
         details["sport"] = _sport_details(sport, now)
+    if portfolio.available and (portfolio.holdings or portfolio.total_value is not None):
+        details["portfolio"] = _portfolio_details(portfolio, version, now)
 
     return {
         "version": version,
@@ -303,7 +373,7 @@ def write_from_templates(
         "generated_label": nl.clock(now),
         "lines": lines,
         "details": details,
-        "sources": {"agenda": agenda.status, "garmin": sport.status},
+        "sources": {"agenda": agenda.status, "garmin": sport.status, "saxo": portfolio.status},
     }
 
 

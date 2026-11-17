@@ -63,7 +63,17 @@
         <p>Gekoppeld. Je slaap, herstel en trainingen komen uit je Garmin-MCP.</p>
       {% else %}
         <p>Nog niet gekoppeld.</p>
-        <p class="quiet small">Koppelen gebeurt op de server, omdat het toegangstoken daar al staat: <code>dailyletter connect {{ user_name }} garmin</code></p>
+        <p class="quiet small">Koppelen gebeurt op de server, omdat het toegangstoken daar al staat: <code>dailyletter connect {{ user_name }} garmin --from-env ~/garmin-mcp/.env</code></p>
+      {% endif %}
+    </div>
+
+    <div class="block">
+      <span class="label">Saxo</span>
+      {% if saxo_connected %}
+        <p>Gekoppeld, alleen lezen. Je portefeuille komt uit je Saxo-MCP.</p>
+      {% else %}
+        <p>Nog niet gekoppeld.</p>
+        <p class="quiet small">Koppelen gebeurt op de server: <code>dailyletter connect {{ user_name }} saxo --from-env ~/saxo-mcp-live/.env</code></p>
       {% endif %}
     </div>
 

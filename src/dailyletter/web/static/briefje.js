@@ -89,6 +89,86 @@
       parts.push(el('p', 'quiet small', data.note));
       body.replaceChildren(...parts);
     },
+
+    portfolio(data) {
+      title.textContent = 'Portefeuille';
+      const parts = [];
+      const amounts = [];
+      // Amounts stay hidden until asked: a glance at your letter should not turn into watching money.
+      function amount(text, className) {
+        const span = el('span', 'amount ' + (className || ''), '••••');
+        span.dataset.value = text || '–';
+        amounts.push(span);
+        return span;
+      }
+
+      if (data.total) {
+        const head = el('section');
+        const row = el('div', 'total-row');
+        const eye = el('button', 'icon');
+        eye.type = 'button';
+        eye.setAttribute('aria-label', 'Toon bedragen');
+        eye.setAttribute('aria-pressed', 'false');
+        eye.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+        eye.addEventListener('click', () => {
+          const show = eye.getAttribute('aria-pressed') !== 'true';
+          eye.setAttribute('aria-pressed', String(show));
+          eye.setAttribute('aria-label', show ? 'Verberg bedragen' : 'Toon bedragen');
+          for (const span of amounts) span.textContent = show ? span.dataset.value : '••••';
+        });
+        row.append(amount(data.total, 'total'), eye);
+        head.append(el('span', 'label', data.fresh ? 'Waarde' : 'Waarde, niet ververst'), row);
+        parts.push(head);
+      }
+
+      if (data.returns.length) {
+        const tiles = el('div', 'tiles');
+        for (const r of data.returns) {
+          const box = el('div', 'tile');
+          box.append(el('span', 'tile-k', r.k), el('span', 'tile-v', r.v));
+          tiles.append(box);
+        }
+        parts.push(tiles);
+      }
+
+      if (data.insights.length) {
+        const box = el('section');
+        const list = el('ul', 'reasons');
+        for (const line of data.insights) list.append(el('li', '', line));
+        box.append(el('span', 'label', 'Valt op'), list);
+        parts.push(box);
+      }
+
+      if (data.positions.length) {
+        const box = el('section');
+        const list = el('ul', 'holdings');
+        for (const p of data.positions) {
+          const item = el('li');
+          const left = el('span', 'what');
+          left.append(el('span', '', p.name));
+          left.append(el('span', 'where', [p.symbol, p.weight].filter(Boolean).join(' · ')));
+          const right = el('span', 'move');
+          right.append(el('span', '', p.day || ''));
+          if (p.pl) right.append(el('span', 'where', 'sinds aankoop ' + p.pl));
+          right.append(amount(p.value, 'where'));
+          item.append(left, right);
+          list.append(item);
+        }
+        box.append(el('span', 'label', 'Posities'), list);
+        parts.push(box);
+      }
+
+      if (data.cash || data.orders !== null) {
+        const foot = el('p', 'small');
+        foot.append('Cash: ');
+        foot.append(amount(data.cash));
+        if (data.orders !== null) foot.append(' · open orders: ' + data.orders);
+        parts.push(foot);
+      }
+
+      parts.push(el('p', 'quiet small', data.note));
+      body.replaceChildren(...parts);
+    },
   };
 
   function open(name, from) {

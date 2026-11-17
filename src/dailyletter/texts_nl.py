@@ -76,6 +76,17 @@ T = {
     "why.week_full": "Je liep al {km} km deze week",
     "why.long_run_day": "Je langste run van de laatste vier weken was {longest} km",
 
+    # Portfolio
+    "portfolio.morning": "Je portefeuille: {when} {day}, deze week {week}.",
+    "portfolio.morning_day": "Je portefeuille: {when} {day}.",
+    "portfolio.morning_week": "Je portefeuille: deze week {week}.",
+    "portfolio.evening": "Je portefeuille vandaag: {day}.",
+    "portfolio.mover": " {name} bewoog het meest: {move}.",
+    "portfolio.stale": "Je Saxo-gegevens konden niet ververst worden.",
+    "portfolio.login": "Je Saxo-login is verlopen. Log opnieuw in op de server, dan komt je portefeuille terug.",
+    "portfolio.concentrated": "{name} is {weight} van je portefeuille.",
+    "portfolio.note": "Alleen lezen: DailyLetter kan niets kopen of verkopen. Bedragen blijven verborgen tot je op het oog tikt.",
+
     # Sport: short names for the session, used midday
     "session.easy_run": "een rustige run van {km} km",
     "session.short_run": "een korte rustige run van {km} km",
@@ -95,6 +106,30 @@ def number(value: float, digits: int = 1) -> str:
     """8.5 -> '8,5', 8.0 -> '8', 1.08 (digits=2) -> '1,08'."""
     text = f"{value:.{digits}f}".rstrip("0").rstrip(".")
     return text.replace(".", ",")
+
+
+CURRENCY_SIGN = {"EUR": "€", "USD": "$", "GBP": "£", "CHF": "CHF"}
+
+
+def signed_pct(value: float, digits: int = 1) -> str:
+    """0.42 -> '+0,4%', -4.1 -> '−4,1%' (a real minus sign), 0.0 -> '0,0%'."""
+    text = f"{abs(value):.{digits}f}".replace(".", ",")
+    if round(value, digits) > 0:
+        return f"+{text}%"
+    if round(value, digits) < 0:
+        return f"−{text}%"
+    return f"{text}%"
+
+
+def pct(value: float) -> str:
+    """42.4 -> '42%'."""
+    return f"{round(value):d}%"
+
+
+def money(value: float, currency: str | None) -> str:
+    """48320.4 -> '€ 48.320'."""
+    whole = f"{round(value):,d}".replace(",", ".")
+    return f"{CURRENCY_SIGN.get(currency or '', currency or '')} {whole}".strip()
 
 
 def hours_minutes(hours: float) -> str:

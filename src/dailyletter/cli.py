@@ -11,7 +11,7 @@ import sys
 from . import crypto, db, pipeline
 from .config import get_settings
 from .decide import VERSIONS
-from .sources import agenda_ical, garmin_mcp
+from .sources import agenda_ical, garmin_mcp, saxo_mcp
 from .sources.mcp_client import McpClient, McpError, McpToolError
 
 
@@ -65,30 +65,38 @@ def cmd_connect(args, settings) -> int:
         names = ", ".join(c["label"] for c in calendars)
         print(f"Agenda bewaard voor {args.user!r}. Gekoppeld: {names}.")
         return 0
-    if args.source == "garmin":
+    if args.source in MCP_SOURCES:
+        label, default_url, check_tool, check_args = MCP_SOURCES[args.source]
         if args.from_env:
-            # Read the token straight from the Garmin MCP's own .env: nothing to copy or paste.
-            url = args.url or garmin_mcp.DEFAULT_URL
+            # Read the token straight from the MCP server's own .env: nothing to copy or paste.
+            url = args.url or default_url
             try:
                 token = read_env_value(args.from_env, "MCP_ACCESS_TOKEN")
             except (OSError, KeyError) as exc:
                 print(f"Niet bewaard: {exc}", file=sys.stderr)
                 return 1
         else:
-            url = args.url or input(f"Adres van je Garmin-MCP [{garmin_mcp.DEFAULT_URL}]: ").strip() or garmin_mcp.DEFAULT_URL
-            token = clean_secret(getpass.getpass("MCP_ACCESS_TOKEN van je Garmin-MCP (wordt niet getoond): "))
+            url = args.url or input(f"Adres van je {label}-MCP [{default_url}]: ").strip() or default_url
+            token = clean_secret(getpass.getpass(f"MCP_ACCESS_TOKEN van je {label}-MCP (wordt niet getoond): "))
         try:
             secret = garmin_mcp.dump_secret(url, token)
-            # Try it before saving, so a typo shows now and not tomorrow morning.
+            # Try it before saving, so a wrong port or token shows now and not tomorrow morning.
             with McpClient(url, token) as mcp:
-                mcp.call("get_sync_status")
+                mcp.call(check_tool, check_args)
         except (ValueError, McpError, McpToolError) as exc:
             print(f"Niet bewaard: {exc}", file=sys.stderr)
             return 1
-        db.set_connection(conn, user["id"], "garmin", crypto.encrypt(settings.secret_key, secret))
-        print(f"Garmin gekoppeld voor {args.user!r}. De verbinding werkt.")
+        db.set_connection(conn, user["id"], args.source, crypto.encrypt(settings.secret_key, secret))
+        print(f"{label} gekoppeld voor {args.user!r}. De verbinding werkt.")
         return 0
     return 1
+
+
+# source -> (name, default address, a read-only tool to test the connection, its arguments)
+MCP_SOURCES = {
+    "garmin": ("Garmin", garmin_mcp.DEFAULT_URL, "get_sync_status", {}),
+    "saxo": ("Saxo", saxo_mcp.DEFAULT_URL, "get_balances", {"wholeClient": True}),
+}
 
 
 def clean_secret(text: str) -> str:
@@ -204,10 +212,10 @@ def main(argv: list[str] | None = None) -> int:
 
     connect = sub.add_parser("connect", help="bewaar een persoonlijke koppeling, versleuteld")
     connect.add_argument("user")
-    connect.add_argument("source", choices=["agenda", "garmin"])
+    connect.add_argument("source", choices=["agenda", "garmin", "saxo"])
     connect.add_argument("--from-env", metavar="BESTAND",
-                         help="garmin: lees MCP_ACCESS_TOKEN uit dit .env-bestand, bijvoorbeeld ~/garmin-mcp/.env")
-    connect.add_argument("--url", help=f"garmin: adres van de MCP-server (standaard {garmin_mcp.DEFAULT_URL})")
+                         help="garmin of saxo: lees MCP_ACCESS_TOKEN uit dit .env-bestand, bijvoorbeeld ~/garmin-mcp/.env")
+    connect.add_argument("--url", help="garmin of saxo: adres van de MCP-server")
     connect.set_defaults(func=cmd_connect)
 
     prefs = sub.add_parser("settings", help="toon of verander de instellingen van een gebruiker")
