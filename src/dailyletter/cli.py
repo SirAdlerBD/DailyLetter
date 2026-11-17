@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+import os
 import sys
 
 from . import crypto, db, pipeline
@@ -65,8 +66,17 @@ def cmd_connect(args, settings) -> int:
         print(f"Agenda bewaard voor {args.user!r}. Gekoppeld: {names}.")
         return 0
     if args.source == "garmin":
-        url = input(f"Adres van je Garmin-MCP [{garmin_mcp.DEFAULT_URL}]: ").strip() or garmin_mcp.DEFAULT_URL
-        token = getpass.getpass("MCP_ACCESS_TOKEN van je Garmin-MCP (wordt niet getoond): ").strip()
+        if args.from_env:
+            # Read the token straight from the Garmin MCP's own .env: nothing to copy or paste.
+            url = args.url or garmin_mcp.DEFAULT_URL
+            try:
+                token = read_env_value(args.from_env, "MCP_ACCESS_TOKEN")
+            except (OSError, KeyError) as exc:
+                print(f"Niet bewaard: {exc}", file=sys.stderr)
+                return 1
+        else:
+            url = args.url or input(f"Adres van je Garmin-MCP [{garmin_mcp.DEFAULT_URL}]: ").strip() or garmin_mcp.DEFAULT_URL
+            token = clean_secret(getpass.getpass("MCP_ACCESS_TOKEN van je Garmin-MCP (wordt niet getoond): "))
         try:
             secret = garmin_mcp.dump_secret(url, token)
             # Try it before saving, so a typo shows now and not tomorrow morning.
@@ -79,6 +89,29 @@ def cmd_connect(args, settings) -> int:
         print(f"Garmin gekoppeld voor {args.user!r}. De verbinding werkt.")
         return 0
     return 1
+
+
+def clean_secret(text: str) -> str:
+    """Remove what a terminal paste can add around a secret: escape codes, quotes, spaces."""
+    text = text.replace("\x1b[200~", "").replace("\x1b[201~", "")
+    text = "".join(ch for ch in text if ch.isprintable()).strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
+        text = text[1:-1].strip()
+    if "=" in text and text.split("=", 1)[0].strip().isupper():
+        text = text.split("=", 1)[1].strip()  # the whole line "MCP_ACCESS_TOKEN=..." was pasted
+    return text
+
+
+def read_env_value(path: str, key: str) -> str:
+    """Read one KEY=value from a .env file without printing it."""
+    with open(os.path.expanduser(path), encoding="utf-8") as file:
+        for line in file:
+            name, sep, value = line.strip().partition("=")
+            if sep and name.strip() == key:
+                value = clean_secret(value.split(" #", 1)[0])
+                if value:
+                    return value
+    raise KeyError(f"{key} staat niet (of leeg) in {path}")
 
 
 def cmd_user_rename(args, settings) -> int:
@@ -172,6 +205,9 @@ def main(argv: list[str] | None = None) -> int:
     connect = sub.add_parser("connect", help="bewaar een persoonlijke koppeling, versleuteld")
     connect.add_argument("user")
     connect.add_argument("source", choices=["agenda", "garmin"])
+    connect.add_argument("--from-env", metavar="BESTAND",
+                         help="garmin: lees MCP_ACCESS_TOKEN uit dit .env-bestand, bijvoorbeeld ~/garmin-mcp/.env")
+    connect.add_argument("--url", help=f"garmin: adres van de MCP-server (standaard {garmin_mcp.DEFAULT_URL})")
     connect.set_defaults(func=cmd_connect)
 
     prefs = sub.add_parser("settings", help="toon of verander de instellingen van een gebruiker")

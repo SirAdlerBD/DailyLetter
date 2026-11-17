@@ -84,12 +84,13 @@ DailyLetter haalt je slaap, herstel en trainingen uit je eigen
 Het gebruikt alleen leestools: `get_recovery_snapshot`, `list_activities` en `get_profile`.
 
 ```bash
-.venv/bin/dailyletter connect cedric garmin
+.venv/bin/dailyletter connect cedric garmin --from-env ~/garmin-mcp/.env
 ```
 
-Druk Enter bij het adres als je Garmin-MCP op de standaardpoort draait (`http://127.0.0.1:3001/mcp`),
-en plak het `MCP_ACCESS_TOKEN` uit het `.env`-bestand van je Garmin-MCP. Het commando test de
-verbinding eerst en bewaart het token pas als die werkt, versleuteld.
+Dat leest het `MCP_ACCESS_TOKEN` rechtstreeks uit het `.env`-bestand van je Garmin-MCP, zonder dat
+je het hoeft te kopiëren. Het adres is standaard `http://127.0.0.1:3001/mcp`; een andere poort geef
+je mee met `--url`. Het commando test de verbinding eerst en bewaart het token pas als die werkt,
+versleuteld. Zonder `--from-env` vraagt het om het adres en het token.
 
 Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
 
