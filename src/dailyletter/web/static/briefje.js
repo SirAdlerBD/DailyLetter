@@ -41,6 +41,53 @@
       tomorrow.append(el('span', 'label', 'Morgen'), eventList(data.tomorrow, 'Niets gepland.', showCalendar));
       body.replaceChildren(today, tomorrow);
     },
+
+    sport(data) {
+      title.textContent = 'Training';
+      const parts = [];
+
+      const head = el('section');
+      head.append(el('span', 'label', data.label), el('h2', '', data.headline));
+      parts.push(head);
+
+      if (data.tiles.length) {
+        const tiles = el('div', 'tiles');
+        for (const tile of data.tiles) {
+          const box = el('div', 'tile');
+          box.append(el('span', 'tile-k', tile.k), el('span', 'tile-v', tile.v));
+          if (tile.s) box.append(el('span', 'tile-s', tile.s));
+          tiles.append(box);
+        }
+        parts.push(tiles);
+      }
+
+      if (data.reasons.length) {
+        const why = el('section');
+        const list = el('ul', 'reasons');
+        for (const reason of data.reasons) list.append(el('li', '', reason));
+        why.append(el('span', 'label', 'Waarom'), list);
+        parts.push(why);
+      }
+
+      const week = el('section');
+      const strip = el('div', 'week');
+      for (const day of data.week) {
+        const cell = el('div', 'day' + (day.today ? ' today' : '') + (day.items.length ? ' active' : ''));
+        cell.append(el('span', 'day-name', day.day), el('span', 'dot'));
+        const empty = day.today ? 'vandaag' : 'rust';
+        cell.append(el('span', 'day-items', day.items.length ? day.items.join(' + ') : empty));
+        strip.append(cell);
+      }
+      week.append(
+        el('span', 'label', 'Deze week'),
+        strip,
+        el('p', 'quiet small', 'Gelopen: ' + data.run_km_week + ' km. Gemiddeld per week: ' + data.run_km_avg + ' km.'),
+      );
+      parts.push(week);
+
+      parts.push(el('p', 'quiet small', data.note));
+      body.replaceChildren(...parts);
+    },
   };
 
   function open(name, from) {

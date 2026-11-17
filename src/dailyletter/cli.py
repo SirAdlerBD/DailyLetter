@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import sys
 
 from . import crypto, db, pipeline
 from .config import get_settings
 from .decide import VERSIONS
-from .sources import agenda_ical
+from .sources import agenda_ical, garmin_mcp
+from .sources.mcp_client import McpClient, McpError, McpToolError
 
 
 def _conn(settings):
@@ -62,7 +64,61 @@ def cmd_connect(args, settings) -> int:
         names = ", ".join(c["label"] for c in calendars)
         print(f"Agenda bewaard voor {args.user!r}. Gekoppeld: {names}.")
         return 0
+    if args.source == "garmin":
+        url = input(f"Adres van je Garmin-MCP [{garmin_mcp.DEFAULT_URL}]: ").strip() or garmin_mcp.DEFAULT_URL
+        token = getpass.getpass("MCP_ACCESS_TOKEN van je Garmin-MCP (wordt niet getoond): ").strip()
+        try:
+            secret = garmin_mcp.dump_secret(url, token)
+            # Try it before saving, so a typo shows now and not tomorrow morning.
+            with McpClient(url, token) as mcp:
+                mcp.call("get_sync_status")
+        except (ValueError, McpError, McpToolError) as exc:
+            print(f"Niet bewaard: {exc}", file=sys.stderr)
+            return 1
+        db.set_connection(conn, user["id"], "garmin", crypto.encrypt(settings.secret_key, secret))
+        print(f"Garmin gekoppeld voor {args.user!r}. De verbinding werkt.")
+        return 0
     return 1
+
+
+def cmd_user_rename(args, settings) -> int:
+    conn = _conn(settings)
+    if db.get_user(conn, args.name) is None:
+        print(f"Gebruiker {args.name!r} bestaat niet.", file=sys.stderr)
+        return 1
+    conn.execute("UPDATE users SET display_name = ? WHERE name = ?", (args.display_name, args.name))
+    conn.commit()
+    print(f"De begroeting gebruikt nu {args.display_name!r}.")
+    return 0
+
+
+def _parse_value(text: str):
+    """JSON when it parses (numbers, null, true), otherwise the plain text."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+
+def cmd_settings(args, settings) -> int:
+    conn = _conn(settings)
+    user = db.get_user(conn, args.user)
+    if user is None:
+        print(f"Gebruiker {args.user!r} bestaat niet.", file=sys.stderr)
+        return 1
+    if args.key is not None:
+        if args.key not in pipeline.ALL_DEFAULTS:
+            print(f"Onbekende instelling {args.key!r}. Kies uit: {', '.join(pipeline.ALL_DEFAULTS)}", file=sys.stderr)
+            return 1
+        if args.value is None:
+            conn.execute("DELETE FROM settings WHERE user_id = ? AND key = ?", (user["id"], args.key))
+            conn.commit()
+            print(f"{args.key} staat terug op de standaardwaarde.")
+            return 0
+        db.set_setting(conn, user["id"], args.key, _parse_value(args.value))
+    for key, value in pipeline.user_prefs(conn, user["id"]).items():
+        print(f"{key} = {json.dumps(value, ensure_ascii=False)}")
+    return 0
 
 
 def cmd_run(args, settings) -> int:
@@ -108,11 +164,21 @@ def main(argv: list[str] | None = None) -> int:
     add.add_argument("--display-name", help="de naam in de begroeting")
     add.add_argument("--timezone", help="bijvoorbeeld Europe/Brussels")
     add.set_defaults(func=cmd_user_add)
+    rename = user.add_parser("rename", help="verander de naam in de begroeting")
+    rename.add_argument("name")
+    rename.add_argument("display_name")
+    rename.set_defaults(func=cmd_user_rename)
 
     connect = sub.add_parser("connect", help="bewaar een persoonlijke koppeling, versleuteld")
     connect.add_argument("user")
-    connect.add_argument("source", choices=["agenda"])
+    connect.add_argument("source", choices=["agenda", "garmin"])
     connect.set_defaults(func=cmd_connect)
+
+    prefs = sub.add_parser("settings", help="toon of verander de instellingen van een gebruiker")
+    prefs.add_argument("user")
+    prefs.add_argument("key", nargs="?", help="bijvoorbeeld long_run_day")
+    prefs.add_argument("value", nargs="?", help="de nieuwe waarde; leeg laten zet de standaard terug")
+    prefs.set_defaults(func=cmd_settings)
 
     run = sub.add_parser("run", help="maak een briefje (de batchjob)")
     run.add_argument("--user", help="alleen deze gebruiker; standaard iedereen")

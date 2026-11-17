@@ -58,6 +58,16 @@
     </div>
 
     <div class="block">
+      <span class="label">Garmin</span>
+      {% if garmin_connected %}
+        <p>Gekoppeld. Je slaap, herstel en trainingen komen uit je Garmin-MCP.</p>
+      {% else %}
+        <p>Nog niet gekoppeld.</p>
+        <p class="quiet small">Koppelen gebeurt op de server, omdat het toegangstoken daar al staat: <code>dailyletter connect {{ user_name }} garmin</code></p>
+      {% endif %}
+    </div>
+
+    <div class="block">
       <span class="label">Jij</span>
       <p>{{ user.display_name }} · {{ user.timezone }}</p>
     </div>

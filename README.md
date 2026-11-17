@@ -14,7 +14,7 @@ Fase 0 en het eerste deel van fase 1 uit het conceptueel ontwerp:
 - Valt een bron uit, dan gebruikt het briefje het laatste goede antwoord en zegt het dat erbij.
 - Pagina met het briefje, een detailpaneel voor je agenda, het invulbalkje en een instellingenpagina.
 
-Nog niet: Garmin, Saxo, nieuws, het taalmodel, taken, timer, eten, de avondvraag.
+Nog niet: Saxo, nieuws, het taalmodel, taken, timer, eten, de avondvraag.
 
 ## Installeren op de server
 
@@ -76,6 +76,47 @@ Het kan ook vanaf de server, zonder dat het adres in je shell-geschiedenis komt:
 ```bash
 .venv/bin/dailyletter connect cedric agenda
 ```
+
+## Garmin koppelen
+
+DailyLetter haalt je slaap, herstel en trainingen uit je eigen
+[Garmin-MCP](https://github.com/SirAdlerBD/Garmin-MCP), die op dezelfde server draait.
+Het gebruikt alleen leestools: `get_recovery_snapshot`, `list_activities` en `get_profile`.
+
+```bash
+.venv/bin/dailyletter connect cedric garmin
+```
+
+Druk Enter bij het adres als je Garmin-MCP op de standaardpoort draait (`http://127.0.0.1:3001/mcp`),
+en plak het `MCP_ACCESS_TOKEN` uit het `.env`-bestand van je Garmin-MCP. Het commando test de
+verbinding eerst en bewaart het token pas als die werkt, versleuteld.
+
+Het sportadvies volgt vaste regels in `src/dailyletter/decide_sport.py`:
+
+- **Rust** bij minder dan 6 uur slaap, een HRV die niet in balans is, een rusthartslag 5 of meer
+  boven je 7-daags gemiddelde, of een belasting die piekt (verhouding boven 1,5).
+- **Rustig en korter** bij een oplopende belasting (1,3 tot 1,5), twee zwakke signalen tegelijk,
+  of een zware sessie in de laatste twee dagen.
+- Daarna het patroon: nooit drie dagen op rij impact (lopen, tennis, padel), een rustdag na zes
+  trainingsdagen, en je looptotaal per week hooguit 10% boven je gemiddelde van de laatste vier weken.
+- Zonder slaapdata van vannacht geeft het briefje geen advies, maar vraagt het om te synchroniseren.
+
+## Instellingen per gebruiker
+
+```bash
+.venv/bin/dailyletter settings cedric                        # alles tonen
+.venv/bin/dailyletter settings cedric long_run_day saturday  # vaste dag voor je lange run
+.venv/bin/dailyletter settings cedric long_run_day           # terug naar de standaard
+.venv/bin/dailyletter user rename cedric Cedric              # de naam in de begroeting
+```
+
+| Instelling | Standaard | Betekenis |
+| --- | --- | --- |
+| `long_run_day` | geen | Dag voor de lange run: `monday` tot `sunday` |
+| `max_week_increase` | `0.1` | Hoeveel je looptotaal per week mag stijgen |
+| `min_run_km` | `4.0` | Korter dan dit stelt het briefje geen run voor |
+| `default_run_km` | `5.0` | Afstand zolang er nog geen loopgeschiedenis is |
+| `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |
 
 ## Handige commando's
 

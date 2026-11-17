@@ -38,7 +38,77 @@ T = {
     "agenda.tomorrow_empty": "Morgen staat er niets in je agenda.",
     "agenda.tomorrow_first": "Morgen begint met {title} om {start}.",
     "agenda.tomorrow_busy": "Het wordt een volle dag: {count} afspraken.",
+
+    # Energy (morning)
+    "energy.good": "Goed geslapen: {sleep}, batterij op {battery}.",
+    "energy.short": "Korte nacht: {sleep}, batterij op {battery}.",
+    "energy.plain": "Je sliep {sleep}, batterij op {battery}.",
+    "energy.good_nobattery": "Goed geslapen: {sleep}.",
+    "energy.short_nobattery": "Korte nacht: {sleep}.",
+    "energy.plain_nobattery": "Je sliep {sleep}.",
+
+    # Sport: the one line in the letter
+    "sport.unknown": "Nog geen slaapdata van vannacht. Synchroniseer je horloge, dan volgt je sportadvies.",
+    "sport.stale": "Je Garmin-data kon niet ververst worden. Kijk of je horloge gesynchroniseerd is.",
+    "sport.rest": "Rustdag. {why}.",
+    "sport.strength": "Kracht vandaag, geen lopen. {why}.",
+    "sport.easy_run": "Rustige run: {km} km in zone 2{hr}.",
+    "sport.short_run": "Rustig en korter: {km} km in zone 2{hr}. {why}.",
+    "sport.long_run": "Lange run vandaag: {km} km, rustig in zone 2{hr}.",
+    "sport.done_morning": "Al getraind vandaag: {summary}.",
+    "sport.done_day": "Je training van vandaag zit erop: {summary}.",
+    "sport.open_day": "Je training staat nog open: {session}.",
+    "sport.done_evening": "Vandaag: {summary}.",
+    "sport.hr": " ({low}–{high} slagen)",
+
+    # Sport: why (first one goes in the sentence, all of them in the detail panel)
+    "why.sleep_short": "Je sliep maar {hours}",
+    "why.hrv_off": "Je HRV is niet in balans",
+    "why.rhr_high": "Je rusthartslag ligt {delta} slagen boven je gemiddelde",
+    "why.load_spike": "Je belasting ligt veel hoger dan je gewend bent",
+    "why.load_high": "Je belasting loopt op",
+    "why.weak_signals": "Je herstel is niet top",
+    "why.hard_recent_1": "Gisteren was zwaar",
+    "why.hard_recent_2": "Eergisteren was zwaar",
+    "why.hard_recent_0": "Je trainde vandaag al zwaar",
+    "why.no_rest_day": "Je trainde {days} dagen op rij",
+    "why.impact_streak": "Je had al {days} dagen op rij impact",
+    "why.week_full": "Je liep al {km} km deze week",
+    "why.long_run_day": "Je langste run van de laatste vier weken was {longest} km",
+
+    # Sport: short names for the session, used midday
+    "session.easy_run": "een rustige run van {km} km",
+    "session.short_run": "een korte rustige run van {km} km",
+    "session.long_run": "je lange run van {km} km",
+    "session.strength": "kracht, geen lopen",
 }
+
+READINESS_LABEL = {"green": "Groen licht", "yellow": "Rustig aan", "red": "Rust", "unknown": "Nog onbekend"}
+HRV_STATUS = {"BALANCED": "in balans", "UNBALANCED": "niet in balans", "LOW": "laag", "POOR": "slecht"}
+DAYS_SHORT = ["ma", "di", "wo", "do", "vr", "za", "zo"]
+GROUP_LABEL = {"running": "Run", "racket": "Racket", "strength": "Kracht", "cycling": "Fiets",
+               "swimming": "Zwem", "walking": "Wandel", "other": "Sport"}
+TYPE_LABEL = {"tennis": "Tennis", "padel": "Padel", "squash": "Squash", "badminton": "Badminton"}
+
+
+def number(value: float, digits: int = 1) -> str:
+    """8.5 -> '8,5', 8.0 -> '8', 1.08 (digits=2) -> '1,08'."""
+    text = f"{value:.{digits}f}".rstrip("0").rstrip(".")
+    return text.replace(".", ",")
+
+
+def hours_minutes(hours: float) -> str:
+    """7.5 -> '7u30', 6.0 -> '6u'."""
+    total = round(hours * 60)
+    h, m = divmod(total, 60)
+    return f"{h}u{m:02d}" if m else f"{h}u"
+
+
+def activity_label(activity_type: str, group: str) -> str:
+    for key, label in TYPE_LABEL.items():
+        if key in activity_type:
+            return label
+    return GROUP_LABEL.get(group, "Sport")
 
 
 def join_names(names: list[str]) -> str:

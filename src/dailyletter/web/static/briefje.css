@@ -137,3 +137,21 @@ body.evening .icon { background: #2E2924; }
 .calendars li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
 .calendars form { margin: 0; }
 .stack .label { margin-top: 8px; }
+
+/* Sport panel */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { padding: 14px 16px; border-radius: 16px; background: var(--soft); display: flex; flex-direction: column; gap: 2px; }
+body.evening .tile { background: #2E2924; }
+.tile-k, .tile-s { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; color: var(--quiet); }
+.tile-v { font-size: 24px; line-height: 1.3; }
+.reasons { margin: 0; padding-left: 18px; font-size: 17px; line-height: 1.6; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 6px 0 4px; }
+.day { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-family: 'Inter', system-ui, sans-serif; }
+.day-name { font-size: 11px; color: var(--quiet); }
+.day.today .day-name { color: var(--ink); font-weight: 500; }
+.dot { width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid var(--border); }
+.day.active .dot { background: var(--underline); border-color: var(--underline); }
+.day.today .dot { border-color: var(--ink); }
+.day-items { font-size: 11px; line-height: 1.3; color: var(--ink); word-break: break-word; }
+.day:not(.active) .day-items { color: var(--quiet); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--soft); padding: 1px 5px; border-radius: 4px; }

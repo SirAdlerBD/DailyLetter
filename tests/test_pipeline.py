@@ -41,7 +41,7 @@ def test_morning_briefing_from_a_connected_agenda(conn, settings, user):
 
     assert source.seen_secret == "https://example.com/secret.ics"
     assert payload["version"] == "morning"
-    assert payload["sources"] == {"agenda": "fresh"}
+    assert payload["sources"]["agenda"] == "fresh"
     assert texts(payload) == [
         "Goeiemorgen Cedric.",
         "Je eerste afspraak is pas over 5u50. Tot dan is je agenda vrij.",
@@ -71,7 +71,7 @@ def test_other_versions_of_the_day(conn, settings, user):
 
 def test_without_a_connection_the_briefing_points_to_settings(conn, settings, user):
     payload = pipeline.run_for_user(conn, settings, user, now=at(7, 40), sources=[FakeAgenda()])
-    assert payload["sources"] == {"agenda": "missing"}
+    assert payload["sources"]["agenda"] == "missing"
     assert payload["lines"][1]["detail"] == "settings"
     assert payload["details"] == {}
 
@@ -81,7 +81,7 @@ def test_a_failing_source_falls_back_to_the_last_good_answer(conn, settings, use
     pipeline.run_for_user(conn, settings, user, now=at(6, 30), sources=[FakeAgenda()])
     payload = pipeline.run_for_user(conn, settings, user, now=at(12, 0), sources=[FakeAgenda(fail=True)])
 
-    assert payload["sources"] == {"agenda": "stale"}
+    assert payload["sources"]["agenda"] == "stale"
     assert texts(payload)[1] == "Nog 2 afspraken vandaag, de laatste eindigt om 18u30."
     assert texts(payload)[-1].startswith("Je agenda kon niet ververst worden.")
     failed = conn.execute("SELECT error FROM snapshots WHERE ok = 0").fetchone()
@@ -91,7 +91,7 @@ def test_a_failing_source_falls_back_to_the_last_good_answer(conn, settings, use
 def test_a_failing_source_without_history_is_missing(conn, settings, user):
     connect_agenda(conn, settings, user)
     payload = pipeline.run_for_user(conn, settings, user, now=at(7, 40), sources=[FakeAgenda(fail=True)])
-    assert payload["sources"] == {"agenda": "missing"}
+    assert payload["sources"]["agenda"] == "missing"
 
 
 def test_the_secret_is_not_stored_in_plain_text(conn, settings, user):
@@ -131,7 +131,7 @@ class PartlyBrokenAgenda(FakeAgenda):
 def test_a_calendar_that_fails_is_named_and_the_rest_still_shows(conn, settings, user):
     connect_agenda(conn, settings, user)
     payload = pipeline.run_for_user(conn, settings, user, now=at(7, 40), sources=[PartlyBrokenAgenda()])
-    assert payload["sources"] == {"agenda": "fresh"}
+    assert payload["sources"]["agenda"] == "fresh"
     assert texts(payload)[1] == "Je eerste afspraak is pas over 5u50. Tot dan is je agenda vrij."
     assert texts(payload)[-1] == "Je agenda “Werk” kon niet gelezen worden. Wat erin staat, ontbreekt hier."
     assert payload["lines"][-1]["detail"] == "settings"
@@ -141,5 +141,5 @@ def test_an_old_failure_is_not_repeated_when_the_whole_agenda_is_stale(conn, set
     connect_agenda(conn, settings, user)
     pipeline.run_for_user(conn, settings, user, now=at(6, 30), sources=[PartlyBrokenAgenda()])
     payload = pipeline.run_for_user(conn, settings, user, now=at(12, 0), sources=[FakeAgenda(fail=True)])
-    assert payload["sources"] == {"agenda": "stale"}
+    assert payload["sources"]["agenda"] == "stale"
     assert not any("kon niet gelezen worden" in t for t in texts(payload))
