@@ -33,6 +33,8 @@ class Settings:
     port: int
     openai_api_key: str
     openai_model: str
+    vapid_private: str = ""     # for notifications; make one with: dailyletter gen-vapid
+    vapid_contact: str = ""     # mailto: or https: address the push services can reach you on
 
     @property
     def db_path(self) -> Path:
@@ -49,4 +51,6 @@ def get_settings() -> Settings:
         port=int(os.environ.get("DAILYLETTER_PORT", "8321")),
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         openai_model=os.environ.get("OPENAI_MODEL", ""),
+        vapid_private=os.environ.get("DAILYLETTER_VAPID_PRIVATE", ""),
+        vapid_contact=os.environ.get("DAILYLETTER_VAPID_CONTACT", ""),
     )

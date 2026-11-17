@@ -17,6 +17,12 @@ fi
 .venv/bin/pip install --quiet .
 .venv/bin/pip install --quiet --force-reinstall --no-deps .
 .venv/bin/dailyletter init
+
+# The systemd units live in the repo too: copy them, and switch on the timers (doing it twice is harmless).
+mkdir -p ~/.config/systemd/user
+cp deploy/dailyletter-*.service deploy/dailyletter-*.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now --quiet dailyletter-run.timer dailyletter-notify.timer
 systemctl --user restart dailyletter-web.service
 
 echo "DailyLetter bijgewerkt: $before -> $after"

@@ -13,6 +13,7 @@ DEFAULTS = {
     "day_end": "18:00",
     "min_free_block_minutes": 30,
     "busy_from_meetings": 4,
+    "notify_times": ["07:30"],        # when a notification goes out (only to phones that subscribed)
 }
 
 VERSIONS = ("morning", "midday", "afternoon", "evening")

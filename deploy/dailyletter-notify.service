@@ -1,0 +1,11 @@
+# Meldingen: kijkt of het tijd is voor een melding (zie de instelling notify_times),
+# maakt dan een vers briefje en stuurt de eerste regels naar je gsm.
+
+[Unit]
+Description=DailyLetter meldingen
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/DailyLetter
+ExecStart=%h/DailyLetter/.venv/bin/dailyletter notify

@@ -1,0 +1,11 @@
+# Elk kwartier. Zonder gekoppelde gsm doet `dailyletter notify` niets.
+
+[Unit]
+Description=DailyLetter meldingen, elk kwartier
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=false
+
+[Install]
+WantedBy=timers.target

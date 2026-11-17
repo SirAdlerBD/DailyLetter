@@ -161,3 +161,46 @@ def add_inbox(conn: sqlite3.Connection, user_id: int, text: str) -> int:
     )
     conn.commit()
     return int(cur.lastrowid)
+
+
+# --- push notifications ----------------------------------------------------
+
+def save_push(conn: sqlite3.Connection, user_id: int, key: str, secret_enc: str) -> None:
+    conn.execute(
+        "INSERT INTO push_subscriptions (user_id, key, secret_enc, created_at) VALUES (?, ?, ?, ?) "
+        "ON CONFLICT (key) DO UPDATE SET user_id = excluded.user_id, secret_enc = excluded.secret_enc",
+        (user_id, key, secret_enc, utcnow()),
+    )
+    conn.commit()
+
+
+def list_push(conn: sqlite3.Connection, user_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM push_subscriptions WHERE user_id = ? ORDER BY id", (user_id,)
+    ).fetchall()
+
+
+def delete_push(conn: sqlite3.Connection, user_id: int, key: str) -> None:
+    conn.execute("DELETE FROM push_subscriptions WHERE user_id = ? AND key = ?", (user_id, key))
+    conn.commit()
+
+
+def push_result(conn: sqlite3.Connection, key: str, error: str | None) -> None:
+    if error is None:
+        conn.execute("UPDATE push_subscriptions SET last_ok_at = ?, last_error = NULL WHERE key = ?", (utcnow(), key))
+    else:
+        conn.execute("UPDATE push_subscriptions SET last_error = ? WHERE key = ?", (error[:200], key))
+    conn.commit()
+
+
+def sent_slots(conn: sqlite3.Connection, user_id: int, date: str) -> set[str]:
+    rows = conn.execute("SELECT slot FROM notifications_sent WHERE user_id = ? AND date = ?", (user_id, date))
+    return {row["slot"] for row in rows}
+
+
+def mark_sent(conn: sqlite3.Connection, user_id: int, date: str, slot: str) -> None:
+    conn.execute(
+        "INSERT OR IGNORE INTO notifications_sent (user_id, date, slot, sent_at) VALUES (?, ?, ?, ?)",
+        (user_id, date, slot, utcnow()),
+    )
+    conn.commit()

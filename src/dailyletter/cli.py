@@ -215,6 +215,53 @@ def cmd_news(args, settings) -> int:
     return 0
 
 
+def cmd_gen_vapid(args, settings) -> int:
+    """Make the notification key and write it into .env, so nothing has to be copied by hand."""
+    from pathlib import Path
+
+    from . import webpush
+
+    contact = args.contact.strip()
+    if not (contact.startswith("mailto:") and "@" in contact) and not contact.startswith("https://"):
+        print("Geef een contactadres als mailto:jij@voorbeeld.be of https://…", file=sys.stderr)
+        return 1
+    env = Path(os.environ.get("DAILYLETTER_ENV_FILE", ".env"))
+    lines = env.read_text(encoding="utf-8").splitlines() if env.exists() else []
+    keys = ("DAILYLETTER_VAPID_PRIVATE", "DAILYLETTER_VAPID_CONTACT")
+    if settings.vapid_private and not args.force:
+        print("Er staat al een sleutel in .env. Een nieuwe maakt alle bestaande abonnementen ongeldig; "
+              "gebruik --force als je dat wilt.", file=sys.stderr)
+        return 1
+    kept = [line for line in lines if line.split("=", 1)[0].strip() not in keys]
+    kept += [f"DAILYLETTER_VAPID_PRIVATE={webpush.generate_vapid_key()}", f"DAILYLETTER_VAPID_CONTACT={contact}"]
+    env.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    env.chmod(0o600)
+    print(f"Sleutel voor meldingen bewaard in {env}. Herstart de web-app: systemctl --user restart dailyletter-web")
+    return 0
+
+
+def cmd_notify(args, settings) -> int:
+    from . import notify
+
+    conn = _conn(settings)
+    users = db.list_users(conn) if args.user is None else [db.get_user(conn, args.user)]
+    if not users or users[0] is None:
+        print("Geen gebruiker gevonden.", file=sys.stderr)
+        return 1
+    failed = 0
+    for user in users:
+        if args.test:
+            payload = {"title": "Testmelding", "body": "Meldingen werken. Je briefje meldt zich voortaan hier.",
+                       "url": "/", "tag": "test"}
+            sent, errors = notify.send_to_user(conn, settings, user, payload)
+        else:
+            sent, errors = notify.notify_user(conn, settings, user)
+        if sent or errors or args.test:
+            print(f"{user['name']}: {sent} verstuurd" + (f", fouten: {'; '.join(errors)}" if errors else ""))
+        failed += bool(errors and not sent)
+    return 1 if failed else 0
+
+
 def cmd_run(args, settings) -> int:
     conn = _conn(settings)
     users = db.list_users(conn) if args.user is None else [db.get_user(conn, args.user)]
@@ -283,6 +330,16 @@ def main(argv: list[str] | None = None) -> int:
     news.add_argument("label", nargs="?", help='de naam van de feed, bijvoorbeeld "De Tijd"')
     news.add_argument("url", nargs="?", help="add: het adres van de feed")
     news.set_defaults(func=cmd_news)
+
+    vapid = sub.add_parser("gen-vapid", help="maak de sleutel voor meldingen en zet ze in .env")
+    vapid.add_argument("--contact", required=True, help="mailto:jij@voorbeeld.be, voor Apple en Google")
+    vapid.add_argument("--force", action="store_true", help="vervang een bestaande sleutel")
+    vapid.set_defaults(func=cmd_gen_vapid)
+
+    note = sub.add_parser("notify", help="stuur de meldingen die nu aan de beurt zijn (elke 15 minuten)")
+    note.add_argument("--user", help="alleen deze gebruiker")
+    note.add_argument("--test", action="store_true", help="stuur nu meteen een testmelding")
+    note.set_defaults(func=cmd_notify)
 
     run = sub.add_parser("run", help="maak een briefje (de batchjob)")
     run.add_argument("--user", help="alleen deze gebruiker; standaard iedereen")

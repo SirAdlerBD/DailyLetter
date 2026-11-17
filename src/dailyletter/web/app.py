@@ -13,11 +13,11 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .. import crypto, db, pipeline
+from .. import crypto, db, decide, notify, pipeline, texts_nl, webpush
 from ..config import Settings, get_settings
 from ..sources import agenda_ical, news_rss
 from ..sources.agenda_ical import InvalidCalendarUrl, TooManyCalendars
@@ -135,6 +135,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "feeds": [f["label"] for f in news_rss.load_feeds(db.get_setting(conn, user["id"], "news_feeds", []))],
                 "position_search": db.get_setting(conn, user["id"], "news_position_search", False),
                 "max_feeds": news_rss.MAX_FEEDS,
+                "push_key": vapid_public(),
+                "push_devices": len(db.list_push(conn, user["id"])),
+                "notify_times": ", ".join(notify.parse_times(
+                    db.get_setting(conn, user["id"], "notify_times", decide.DEFAULTS["notify_times"]))),
                 "user_name": user["name"],
                 "max_calendars": agenda_ical.MAX_CALENDARS,
                 "message": request.query_params.get("m"),
@@ -169,6 +173,65 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if calendars:
             pipeline.run_for_user(conn, settings, user)
         return RedirectResponse("/instellingen?m=verwijderd", status_code=303)
+
+    def vapid_public() -> str | None:
+        if not settings.vapid_private:
+            return None
+        try:
+            return webpush.vapid_public_key(settings.vapid_private)
+        except webpush.PushError:
+            return None
+
+    @app.get("/sw.js")
+    def service_worker():
+        # Served from the root, so it may handle the whole app.
+        return FileResponse(HERE / "static" / "sw.js", media_type="application/javascript",
+                            headers={"Cache-Control": "no-cache"})
+
+    @app.get("/api/briefje")
+    def api_briefje(conn=Depends(get_conn), user=Depends(current_user)):
+        """The letter as plain lines, for the home-screen widget."""
+        now = datetime.now(ZoneInfo(user["timezone"]))
+        letter = db.latest_briefing(conn, user["id"], now.date().isoformat())
+        body = {
+            "date_label": letter["date_label"] if letter else texts_nl.long_date(now),
+            "generated_label": letter["generated_label"] if letter else "",
+            "version": letter["version"] if letter else None,
+            "lines": [line["text"] for line in letter["lines"][1:]] if letter else [],
+        }
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+    @app.post("/meldingen/abonneer")
+    async def subscribe(request: Request, conn=Depends(get_conn), user=Depends(current_user)):
+        try:
+            sub = webpush.Subscription.from_browser(await request.json())
+            db.save_push(conn, user["id"], sub.key, crypto.encrypt(settings.secret_key, sub.to_json()))
+        except (webpush.PushError, ValueError, crypto.SecretKeyError) as exc:
+            raise HTTPException(422, str(exc))
+        return {"ok": True}
+
+    @app.post("/meldingen/uitschrijven")
+    async def unsubscribe(request: Request, conn=Depends(get_conn), user=Depends(current_user)):
+        data = await request.json()
+        endpoint = str(data.get("endpoint") or "")
+        db.delete_push(conn, user["id"], webpush.Subscription(endpoint, "", "").key)
+        return {"ok": True}
+
+    @app.post("/meldingen/test")
+    def test_notification(conn=Depends(get_conn), user=Depends(current_user)):
+        payload = {"title": "Testmelding", "body": "Meldingen werken. Je briefje meldt zich voortaan hier.",
+                   "url": "/", "tag": "test"}
+        sent, errors = notify.send_to_user(conn, settings, user, payload)
+        return {"sent": sent, "error": errors[0] if errors and not sent else None}
+
+    @app.post("/instellingen/meldingen/tijden")
+    def notify_times(tijden: str = Form(""), conn=Depends(get_conn), user=Depends(current_user)):
+        try:
+            times = notify.parse_times(tijden)
+        except ValueError:
+            return RedirectResponse("/instellingen?e=tijden", status_code=303)
+        db.set_setting(conn, user["id"], "notify_times", times)
+        return RedirectResponse("/instellingen?m=tijden", status_code=303)
 
     def read_feeds(conn: sqlite3.Connection, user_id: int) -> list[dict]:
         return news_rss.load_feeds(db.get_setting(conn, user_id, "news_feeds", []))

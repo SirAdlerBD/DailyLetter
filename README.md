@@ -148,6 +148,35 @@ van de laatste 24 uur telt (op maandag sinds vrijdag), een kop over een positie 
 bij naam noemen, en hetzelfde verhaal komt nooit twee keer. In het paneel staan per bron een paar
 koppen met een link naar het artikel.
 
+## Op je gsm: app, meldingen en widget
+
+**Als app.** Open het Tailscale-adres in Safari, tik op Deel en dan "Zet op beginscherm". Het briefje
+opent daarna schermvullend, met een eigen icoon.
+
+**Meldingen.** Eén keer op de server:
+
+```bash
+.venv/bin/dailyletter gen-vapid --contact mailto:jij@voorbeeld.be
+systemctl --user restart dailyletter-web
+```
+
+Dat maakt de sleutel waarmee de server zijn meldingen ondertekent en zet ze in `.env`. Het contactadres
+krijgen Apple en Google te zien, voor als er iets misloopt. Open daarna het briefje *vanaf je beginscherm*,
+ga naar Instellingen en tik op "Zet meldingen aan". Op een iPhone werkt dat alleen vanaf het beginscherm.
+
+Om de tijden in `notify_times` (standaard 7u30) maakt het briefje zich opnieuw en stuurt het de eerste
+regels als melding. De timer `dailyletter-notify.timer` kijkt daarvoor elk kwartier. De melding is
+versleuteld voor je toestel: Apple en Google brengen ze alleen over en kunnen ze niet lezen.
+
+```bash
+.venv/bin/dailyletter notify --test      # stuur nu een testmelding
+```
+
+**Widget.** Installeer de gratis app Scriptable. Kopieer op de instellingenpagina de code bij "Widget op
+je beginscherm", maak in Scriptable een nieuw script en plak ze erin. Houd dan je beginscherm ingedrukt,
+voeg een Scriptable-widget toe en kies dat script. De widget haalt je briefje rechtstreeks van je server,
+dus Tailscale moet aanstaan: zet in de Tailscale-app "VPN On Demand" aan.
+
 ## Instellingen per gebruiker
 
 ```bash
@@ -171,6 +200,7 @@ koppen met een link naar het artikel.
 | `news_max_positions` | `8` | Voor hoeveel posities er nieuws gezocht wordt |
 | `news_general_count` | `3` | Koppen per feed in het paneel |
 | `news_per_position` | `2` | Koppen per positie in het paneel |
+| `notify_times` | `["07:30"]` | Wanneer er een melding komt. Ook in te stellen op de instellingenpagina |
 | `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |
 
 ## Bijwerken op de server
