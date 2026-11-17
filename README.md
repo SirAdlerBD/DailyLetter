@@ -58,11 +58,18 @@ systemctl --user enable --now dailyletter-web.service dailyletter-run.timer
 loginctl enable-linger "$USER"      # blijft draaien als je uitlogt
 ```
 
-## Je agenda koppelen
+## Je agenda's koppelen
 
-Open de pagina, tik onderaan op Instellingen en plak het geheime iCal-adres van je agenda.
-In Google Calendar staat het bij Instellingen, je agenda, "Geheim adres in iCal-indeling".
-Het adres wordt versleuteld bewaard en daarna nergens meer getoond.
+Open de pagina, tik onderaan op Instellingen, geef de agenda een naam (bijvoorbeeld Privé of Werk)
+en plak het geheime iCal-adres. Herhaal dat voor elke agenda: het briefje voegt ze samen tot één dag,
+en een afspraak die in twee agenda's staat, telt maar één keer.
+
+- Google Calendar: Instellingen, je agenda, "Geheim adres in iCal-indeling".
+- Outlook: Instellingen, Agenda, Gedeelde agenda's, "Een agenda publiceren", en dan de ICS-link.
+  Op een werkaccount kan je IT-afdeling dat uitgeschakeld hebben.
+
+De adressen worden versleuteld bewaard en daarna nergens meer getoond. Kan één agenda niet gelezen
+worden, dan toont het briefje de andere en zegt het welke ontbreekt.
 
 Het kan ook vanaf de server, zonder dat het adres in je shell-geschiedenis komt:
 

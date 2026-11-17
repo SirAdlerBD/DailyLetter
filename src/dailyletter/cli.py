@@ -9,7 +9,7 @@ import sys
 from . import crypto, db, pipeline
 from .config import get_settings
 from .decide import VERSIONS
-from .sources.agenda_ical import normalize_url
+from .sources import agenda_ical
 
 
 def _conn(settings):
@@ -50,13 +50,19 @@ def cmd_connect(args, settings) -> int:
     if user is None:
         print(f"Gebruiker {args.user!r} bestaat niet.", file=sys.stderr)
         return 1
-    # Asked without echo so the secret never lands in the shell history.
-    secret = getpass.getpass(f"Geheim voor {args.source} (wordt niet getoond): ").strip()
     if args.source == "agenda":
-        secret = normalize_url(secret)
-    db.set_connection(conn, user["id"], args.source, crypto.encrypt(settings.secret_key, secret))
-    print(f"Koppeling {args.source!r} bewaard voor {args.user!r}.")
-    return 0
+        label = input("Naam van de agenda, bijvoorbeeld Privé of Werk: ").strip()
+        # Asked without echo so the secret never lands in the shell history or on screen.
+        url = getpass.getpass("Geheim iCal-adres (wordt niet getoond): ").strip()
+        token = db.get_connection(conn, user["id"], "agenda")
+        current = agenda_ical.load_calendars(crypto.decrypt(settings.secret_key, token)) if token else []
+        calendars = agenda_ical.add_calendar(current, label, url)
+        secret = agenda_ical.dump_calendars(calendars)
+        db.set_connection(conn, user["id"], "agenda", crypto.encrypt(settings.secret_key, secret))
+        names = ", ".join(c["label"] for c in calendars)
+        print(f"Agenda bewaard voor {args.user!r}. Gekoppeld: {names}.")
+        return 0
+    return 1
 
 
 def cmd_run(args, settings) -> int:

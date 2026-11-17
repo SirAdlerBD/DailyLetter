@@ -13,7 +13,7 @@
     return node;
   }
 
-  function eventList(events, emptyText) {
+  function eventList(events, emptyText, showCalendar) {
     if (!events.length) return el('p', 'quiet', emptyText);
     const list = el('ul', 'events');
     for (const event of events) {
@@ -21,7 +21,8 @@
       item.append(el('span', 'when', event.all_day ? 'hele dag' : event.start + ' – ' + event.end));
       const what = el('span', 'what');
       what.append(el('span', '', event.title));
-      if (event.location) what.append(el('span', 'where', event.location));
+      const where = [showCalendar ? event.calendar : null, event.location].filter(Boolean).join(' · ');
+      if (where) what.append(el('span', 'where', where));
       item.append(what);
       list.append(item);
     }
@@ -31,10 +32,13 @@
   const panels = {
     agenda(data) {
       title.textContent = 'Agenda';
+      // Name the calendar only when there is more than one; with one it is noise.
+      const names = new Set(data.today.concat(data.tomorrow).map((e) => e.calendar).filter(Boolean));
+      const showCalendar = names.size > 1;
       const today = el('section');
-      today.append(el('span', 'label', 'Vandaag'), eventList(data.today, 'Niets gepland.'));
+      today.append(el('span', 'label', 'Vandaag'), eventList(data.today, 'Niets gepland.', showCalendar));
       const tomorrow = el('section');
-      tomorrow.append(el('span', 'label', 'Morgen'), eventList(data.tomorrow, 'Niets gepland.'));
+      tomorrow.append(el('span', 'label', 'Morgen'), eventList(data.tomorrow, 'Niets gepland.', showCalendar));
       body.replaceChildren(today, tomorrow);
     },
   };

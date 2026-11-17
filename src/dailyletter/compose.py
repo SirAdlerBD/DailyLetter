@@ -29,6 +29,7 @@ def _event_view(event: Event) -> dict:
         "end": None if event.all_day else nl.clock(event.end),
         "all_day": event.all_day,
         "location": event.location,
+        "calendar": event.calendar,
     }
 
 
@@ -106,6 +107,9 @@ def write_from_templates(
             fetched = datetime.fromisoformat(agenda.fetched_at).astimezone(now.tzinfo)
             lines.append(_line("agenda_stale", nl.T["agenda.stale"].format(
                 when=nl.short_when(fetched, now)), "agenda"))
+        if agenda.failed_calendars:
+            lines.append(_line("agenda_partial", nl.T["agenda.partial"].format(
+                names=nl.join_names(agenda.failed_calendars)), "settings"))
 
     details = {}
     if agenda.available:

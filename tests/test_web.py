@@ -1,8 +1,11 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
 from dailyletter import crypto, db, pipeline
 from dailyletter.web.app import create_app
+
 
 class TodayAgenda:
     """One meeting on whatever day the test runs, so the page always has something to show."""
@@ -46,20 +49,55 @@ def test_inbox_stores_what_you_type(client, conn, user):
     assert client.post("/inbox", data={"text": "   "}).status_code == 422
 
 
+def stored_calendars(conn, user, settings):
+    token = db.get_connection(conn, user["id"], "agenda")
+    return None if token is None else json.loads(crypto.decrypt(settings.secret_key, token))
+
+
 def test_connecting_the_agenda_encrypts_the_address(client, conn, user, settings):
-    response = client.post("/instellingen/agenda", data={"url": "webcal://example.com/secret.ics"})
+    response = client.post("/instellingen/agenda", data={"label": "Privé", "url": "webcal://example.com/secret.ics"})
     assert response.headers["location"] == "/instellingen?m=agenda"
-    stored = db.get_connection(conn, user["id"], "agenda")
-    assert crypto.decrypt(settings.secret_key, stored) == "https://example.com/secret.ics"
+    assert stored_calendars(conn, user, settings) == [{"label": "Privé", "url": "https://example.com/secret.ics"}]
+    assert "example.com" not in db.get_connection(conn, user["id"], "agenda")
 
     settings_page = client.get("/instellingen").text
-    assert "Gekoppeld." in settings_page
+    assert "Privé" in settings_page
     assert "example.com/secret" not in settings_page
     assert "Intake RPA-traject" in client.get("/").text
 
 
+def test_a_second_calendar_is_added_and_one_can_be_removed(client, conn, user, settings):
+    client.post("/instellingen/agenda", data={"label": "Privé", "url": "https://a.example/p.ics"})
+    client.post("/instellingen/agenda", data={"label": "Werk", "url": "https://b.example/w.ics"})
+    assert [c["label"] for c in stored_calendars(conn, user, settings)] == ["Privé", "Werk"]
+    page = client.get("/instellingen").text
+    assert "Privé" in page and "Werk" in page and "b.example" not in page
+
+    response = client.post("/instellingen/agenda/verwijder", data={"index": "0"})
+    assert response.headers["location"] == "/instellingen?m=verwijderd"
+    assert stored_calendars(conn, user, settings) == [{"label": "Werk", "url": "https://b.example/w.ics"}]
+
+    client.post("/instellingen/agenda/verwijder", data={"index": "0"})
+    assert stored_calendars(conn, user, settings) is None
+
+
+def test_an_address_saved_before_names_existed_shows_as_agenda(client, conn, user, settings):
+    db.set_connection(conn, user["id"], "agenda", crypto.encrypt(settings.secret_key, "https://old.example/x.ics"))
+    assert "Agenda" in client.get("/instellingen").text
+    client.post("/instellingen/agenda", data={"label": "Werk", "url": "https://b.example/w.ics"})
+    assert [c["label"] for c in stored_calendars(conn, user, settings)] == ["Agenda", "Werk"]
+
+
+def test_calendars_saved_with_another_key_can_be_cleared(client, conn, user):
+    db.set_connection(conn, user["id"], "agenda", crypto.encrypt(crypto.generate_key(), "https://old.example/x.ics"))
+    page = client.get("/instellingen").text
+    assert "met een andere sleutel versleuteld" in page
+    client.post("/instellingen/agenda/verwijder", data={"index": "0"})
+    assert db.get_connection(conn, user["id"], "agenda") is None
+
+
 def test_a_bad_address_is_refused(client, conn, user):
-    response = client.post("/instellingen/agenda", data={"url": "http://example.com/a.ics"})
+    response = client.post("/instellingen/agenda", data={"label": "Werk", "url": "http://example.com/a.ics"})
     assert response.headers["location"] == "/instellingen?e=url"
     assert db.get_connection(conn, user["id"], "agenda") is None
 

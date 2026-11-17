@@ -19,7 +19,8 @@ from fastapi.templating import Jinja2Templates
 
 from .. import crypto, db, pipeline
 from ..config import Settings, get_settings
-from ..sources.agenda_ical import InvalidCalendarUrl, normalize_url
+from ..sources import agenda_ical
+from ..sources.agenda_ical import InvalidCalendarUrl, TooManyCalendars
 
 HERE = Path(__file__).parent
 MAX_INBOX_LENGTH = 2000
@@ -102,35 +103,65 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         pipeline.run_for_user(conn, settings, user)
         return RedirectResponse("/", status_code=303)
 
+    def read_calendars(conn: sqlite3.Connection, user_id: int) -> list[dict]:
+        token = db.get_connection(conn, user_id, "agenda")
+        if token is None:
+            return []
+        return agenda_ical.load_calendars(crypto.decrypt(settings.secret_key, token))
+
+    def write_calendars(conn: sqlite3.Connection, user_id: int, calendars: list[dict]) -> None:
+        if not calendars:
+            db.delete_connection(conn, user_id, "agenda")
+            return
+        token = crypto.encrypt(settings.secret_key, agenda_ical.dump_calendars(calendars))
+        db.set_connection(conn, user_id, "agenda", token)
+
     @app.get("/instellingen", response_class=HTMLResponse)
     def settings_page(request: Request, conn=Depends(get_conn), user=Depends(current_user)):
+        error = request.query_params.get("e")
+        try:
+            calendars = read_calendars(conn, user["id"])
+        except crypto.SecretKeyError:
+            calendars, error = [], "unreadable"
         return templates.TemplateResponse(
             request,
             "instellingen.html",
             {
                 "user": user,
-                "agenda_connected": db.get_connection(conn, user["id"], "agenda") is not None,
+                # Names only. The addresses are secrets and never go back to the browser.
+                "calendars": [c["label"] for c in calendars],
+                "max_calendars": agenda_ical.MAX_CALENDARS,
                 "message": request.query_params.get("m"),
-                "error": request.query_params.get("e"),
+                "error": error,
             },
         )
 
     @app.post("/instellingen/agenda")
-    def save_agenda(url: str = Form(...), conn=Depends(get_conn), user=Depends(current_user)):
+    def add_agenda(
+        url: str = Form(...), label: str = Form(""), conn=Depends(get_conn), user=Depends(current_user)
+    ):
         try:
-            clean = normalize_url(url)
-            token = crypto.encrypt(settings.secret_key, clean)
+            calendars = agenda_ical.add_calendar(read_calendars(conn, user["id"]), label, url)
+            write_calendars(conn, user["id"], calendars)
         except InvalidCalendarUrl:
             return RedirectResponse("/instellingen?e=url", status_code=303)
+        except TooManyCalendars:
+            return RedirectResponse("/instellingen?e=max", status_code=303)
         except crypto.SecretKeyError:
             return RedirectResponse("/instellingen?e=key", status_code=303)
-        db.set_connection(conn, user["id"], "agenda", token)
         pipeline.run_for_user(conn, settings, user)
         return RedirectResponse("/instellingen?m=agenda", status_code=303)
 
     @app.post("/instellingen/agenda/verwijder")
-    def remove_agenda(conn=Depends(get_conn), user=Depends(current_user)):
-        db.delete_connection(conn, user["id"], "agenda")
+    def remove_agenda(index: int = Form(...), conn=Depends(get_conn), user=Depends(current_user)):
+        try:
+            calendars = read_calendars(conn, user["id"])
+        except crypto.SecretKeyError:
+            # Unreadable with this key: the only way forward is to start over.
+            calendars = []
+        write_calendars(conn, user["id"], agenda_ical.remove_calendar(calendars, index))
+        if calendars:
+            pipeline.run_for_user(conn, settings, user)
         return RedirectResponse("/instellingen?m=verwijderd", status_code=303)
 
     return app

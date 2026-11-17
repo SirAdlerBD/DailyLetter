@@ -44,12 +44,13 @@ def test_morning_briefing_from_a_connected_agenda(conn, settings, user):
     assert payload["sources"] == {"agenda": "fresh"}
     assert texts(payload) == [
         "Goeiemorgen Cedric.",
-        "Je eerste meeting is pas over 5u50. Tot dan is je agenda vrij.",
-        "Vandaag 2 meetings, de laatste eindigt om 18u30.",
+        "Je eerste afspraak is pas over 5u50. Tot dan is je agenda vrij.",
+        "Vandaag 2 afspraken, de laatste eindigt om 18u30.",
         "Ook vandaag: Verjaardag mama.",
     ]
     assert payload["details"]["agenda"]["today"][1] == {
         "title": "Intake RPA-traject", "start": "13u30", "end": "14u15", "all_day": False, "location": "Teams",
+        "calendar": None,
     }
     assert db.latest_briefing(conn, user["id"], "2026-11-16") == payload
 
@@ -59,11 +60,11 @@ def test_other_versions_of_the_day(conn, settings, user):
     midday = pipeline.run_for_user(conn, settings, user, now=at(12, 0), sources=[FakeAgenda()])
     assert texts(midday) == [
         "Goeiemiddag Cedric.",
-        "Nog 2 meetings vandaag, de laatste eindigt om 18u30.",
+        "Nog 2 afspraken vandaag, de laatste eindigt om 18u30.",
         "Je langste vrije blok loopt van 14u15 tot 17u.",
     ]
     afternoon = pipeline.run_for_user(conn, settings, user, now=at(16, 30), sources=[FakeAgenda()])
-    assert texts(afternoon)[1] == "Nog één meeting vandaag: Stuurgroep testautomatisatie, tot 18u30."
+    assert texts(afternoon)[1] == "Nog één afspraak vandaag: Stuurgroep testautomatisatie, tot 18u30."
     evening = pipeline.run_for_user(conn, settings, user, now=at(21, 0), sources=[FakeAgenda()])
     assert texts(evening) == ["Goeienavond Cedric.", "Morgen begint met Wekelijkse sync om 9u."]
 
@@ -81,7 +82,7 @@ def test_a_failing_source_falls_back_to_the_last_good_answer(conn, settings, use
     payload = pipeline.run_for_user(conn, settings, user, now=at(12, 0), sources=[FakeAgenda(fail=True)])
 
     assert payload["sources"] == {"agenda": "stale"}
-    assert texts(payload)[1] == "Nog 2 meetings vandaag, de laatste eindigt om 18u30."
+    assert texts(payload)[1] == "Nog 2 afspraken vandaag, de laatste eindigt om 18u30."
     assert texts(payload)[-1].startswith("Je agenda kon niet ververst worden.")
     failed = conn.execute("SELECT error FROM snapshots WHERE ok = 0").fetchone()
     assert "calendar unreachable" in failed["error"]
@@ -116,3 +117,29 @@ def test_validate_refuses_a_broken_briefing():
         compose.validate({"lines": [{"id": "a", "text": "x", "detail": "agenda"}], "details": {}})
     with pytest.raises(ValueError):
         compose.validate({"lines": [{"id": "a", "text": "x" * 300, "detail": None}]})
+
+
+class PartlyBrokenAgenda(FakeAgenda):
+    """Two calendars connected, one of them unreachable this run."""
+
+    def fetch(self, secret, window):
+        facts = super().fetch(secret, window)
+        facts["failed"] = ["Werk"]
+        return facts
+
+
+def test_a_calendar_that_fails_is_named_and_the_rest_still_shows(conn, settings, user):
+    connect_agenda(conn, settings, user)
+    payload = pipeline.run_for_user(conn, settings, user, now=at(7, 40), sources=[PartlyBrokenAgenda()])
+    assert payload["sources"] == {"agenda": "fresh"}
+    assert texts(payload)[1] == "Je eerste afspraak is pas over 5u50. Tot dan is je agenda vrij."
+    assert texts(payload)[-1] == "Je agenda “Werk” kon niet gelezen worden. Wat erin staat, ontbreekt hier."
+    assert payload["lines"][-1]["detail"] == "settings"
+
+
+def test_an_old_failure_is_not_repeated_when_the_whole_agenda_is_stale(conn, settings, user):
+    connect_agenda(conn, settings, user)
+    pipeline.run_for_user(conn, settings, user, now=at(6, 30), sources=[PartlyBrokenAgenda()])
+    payload = pipeline.run_for_user(conn, settings, user, now=at(12, 0), sources=[FakeAgenda(fail=True)])
+    assert payload["sources"] == {"agenda": "stale"}
+    assert not any("kon niet gelezen worden" in t for t in texts(payload))

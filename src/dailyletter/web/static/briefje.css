@@ -131,3 +131,9 @@ body.evening .icon { background: #2E2924; }
 .events .what { display: flex; flex-direction: column; gap: 2px; font-size: 18px; line-height: 1.4; }
 .events .where { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; color: var(--quiet); }
 .sheet section { display: flex; flex-direction: column; gap: 8px; }
+
+/* Settings: list of connected calendars */
+.calendars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.calendars li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.calendars form { margin: 0; }
+.stack .label { margin-top: 8px; }

@@ -21,23 +21,32 @@ GREETING = {
 T = {
     "agenda.missing": "Je agenda is nog niet gekoppeld. Plak je iCal-adres bij de instellingen.",
     "agenda.stale": "Je agenda kon niet ververst worden. Dit is de versie van {when}.",
+    "agenda.partial": "Je agenda {names} kon niet gelezen worden. Wat erin staat, ontbreekt hier.",
     "agenda.empty_today": "Vandaag staat er niets in je agenda. De dag is van jou.",
-    "agenda.first_far": "Je eerste meeting is pas over {duration}. Tot dan is je agenda vrij.",
-    "agenda.next_far": "Je volgende meeting is pas over {duration}. Tot dan is je agenda vrij.",
-    "agenda.first_near": "Je eerste meeting begint over {duration}: {title}.",
-    "agenda.next_near": "Je volgende meeting begint over {duration}: {title}.",
+    "agenda.first_far": "Je eerste afspraak is pas over {duration}. Tot dan is je agenda vrij.",
+    "agenda.next_far": "Je volgende afspraak is pas over {duration}. Tot dan is je agenda vrij.",
+    "agenda.first_near": "Je eerste afspraak begint over {duration}: {title}.",
+    "agenda.next_near": "Je volgende afspraak begint over {duration}: {title}.",
     "agenda.now": "Je zit nu in {title}, tot {end}.",
-    "agenda.count_today": "Vandaag {count} meetings, de laatste eindigt om {end}.",
+    "agenda.count_today": "Vandaag {count} afspraken, de laatste eindigt om {end}.",
     "agenda.all_day": "Ook vandaag: {titles}.",
-    "agenda.done": "Je meetings van vandaag zitten erop.",
+    "agenda.done": "Je afspraken van vandaag zitten erop.",
     "agenda.rest_empty": "Je agenda is leeg voor de rest van de dag.",
-    "agenda.remaining_one": "Nog één meeting vandaag: {title}, tot {end}.",
-    "agenda.remaining_many": "Nog {count} meetings vandaag, de laatste eindigt om {end}.",
+    "agenda.remaining_one": "Nog één afspraak vandaag: {title}, tot {end}.",
+    "agenda.remaining_many": "Nog {count} afspraken vandaag, de laatste eindigt om {end}.",
     "agenda.free_block": "Je langste vrije blok loopt van {start} tot {end}.",
     "agenda.tomorrow_empty": "Morgen staat er niets in je agenda.",
     "agenda.tomorrow_first": "Morgen begint met {title} om {start}.",
-    "agenda.tomorrow_busy": "Het wordt een volle dag: {count} meetings.",
+    "agenda.tomorrow_busy": "Het wordt een volle dag: {count} afspraken.",
 }
+
+
+def join_names(names: list[str]) -> str:
+    """['Werk'] -> '“Werk”', ['Werk', 'Sport'] -> '“Werk” en “Sport”'."""
+    quoted = [f"“{name}”" for name in names]
+    if len(quoted) <= 1:
+        return "".join(quoted)
+    return ", ".join(quoted[:-1]) + " en " + quoted[-1]
 
 
 def clock(moment: datetime) -> str:

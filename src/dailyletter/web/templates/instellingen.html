@@ -16,26 +16,45 @@
   <section class="lines">
     <h1>Instellingen</h1>
 
-    {% if message == 'agenda' %}<p class="note" role="status">Je agenda is gekoppeld. Er staat een nieuw briefje klaar.</p>{% endif %}
-    {% if message == 'verwijderd' %}<p class="note" role="status">De koppeling met je agenda is verwijderd.</p>{% endif %}
+    {% if message == 'agenda' %}<p class="note" role="status">Agenda bewaard. Er staat een nieuw briefje klaar.</p>{% endif %}
+    {% if message == 'verwijderd' %}<p class="note" role="status">Agenda verwijderd.</p>{% endif %}
     {% if error == 'url' %}<p class="note" role="alert">Dat adres werkt niet. Het moet met https:// of webcal:// beginnen.</p>{% endif %}
+    {% if error == 'max' %}<p class="note" role="alert">Je kunt hoogstens {{ max_calendars }} agenda's koppelen.</p>{% endif %}
     {% if error == 'key' %}<p class="note" role="alert">De server heeft nog geen geldige DAILYLETTER_SECRET_KEY. Zet die eerst in het bestand .env.</p>{% endif %}
+    {% if error == 'unreadable' %}<p class="note" role="alert">Je gekoppelde agenda's zijn met een andere sleutel versleuteld en niet meer te lezen. Verwijder ze en voeg ze opnieuw toe.</p>{% endif %}
 
     <div class="block">
-      <span class="label">Agenda</span>
-      {% if agenda_connected %}
-        <p>Gekoppeld. Het adres staat versleuteld in de database en wordt hier niet meer getoond.</p>
+      <span class="label">Agenda's</span>
+      {% if calendars %}
+        <ul class="calendars">
+          {% for name in calendars %}
+          <li>
+            <span>{{ name }}</span>
+            <form method="post" action="/instellingen/agenda/verwijder">
+              <input type="hidden" name="index" value="{{ loop.index0 }}">
+              <button class="pill" type="submit" aria-label="Verwijder {{ name }}">Verwijder</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="quiet small">De adressen staan versleuteld in de database en worden hier niet getoond.</p>
+      {% elif error == 'unreadable' %}
+        <form method="post" action="/instellingen/agenda/verwijder">
+          <input type="hidden" name="index" value="0">
+          <button class="pill" type="submit">Verwijder de oude koppeling</button>
+        </form>
       {% else %}
-        <p>Nog niet gekoppeld.</p>
+        <p>Nog geen agenda gekoppeld.</p>
       {% endif %}
+
       <form method="post" action="/instellingen/agenda" class="stack">
+        <span class="label">{{ 'Nog een agenda toevoegen' if calendars else 'Agenda toevoegen' }}</span>
+        <label for="label" class="quiet small">Naam van de agenda. Gebruik je een naam die al bestaat, dan vervang je dat adres.</label>
+        <input id="label" name="label" type="text" maxlength="40" autocomplete="off" placeholder="bijvoorbeeld Werk">
         <label for="url" class="quiet small">Geheim iCal-adres. In Google Calendar: Instellingen, je agenda, "Geheim adres in iCal-indeling".</label>
         <input id="url" name="url" type="url" required autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics">
-        <button class="pill dark" type="submit">{{ 'Vervang het adres' if agenda_connected else 'Koppel je agenda' }}</button>
+        <button class="pill dark" type="submit">Voeg toe</button>
       </form>
-      {% if agenda_connected %}
-      <form method="post" action="/instellingen/agenda/verwijder"><button class="pill" type="submit">Verwijder de koppeling</button></form>
-      {% endif %}
     </div>
 
     <div class="block">

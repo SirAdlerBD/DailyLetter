@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 
-from .sources.base import MISSING, SourceResult
+from .sources.base import FRESH, MISSING, SourceResult
 
 # Defaults for per-user settings. A user overrides any of them in the `settings` table.
 DEFAULTS = {
@@ -37,6 +37,7 @@ class Event:
     end: datetime
     all_day: bool
     location: str | None
+    calendar: str | None = None
 
     @classmethod
     def from_fact(cls, fact: dict) -> "Event":
@@ -46,6 +47,7 @@ class Event:
             end=datetime.fromisoformat(fact["end"]),
             all_day=fact["all_day"],
             location=fact.get("location"),
+            calendar=fact.get("calendar"),
         )
 
 
@@ -62,6 +64,7 @@ class AgendaDecision:
     last_end: datetime | None = None
     free_block: tuple[datetime, datetime] | None = None
     busy: bool = False
+    failed_calendars: list[str] = field(default_factory=list)  # names that could not be refreshed now
 
     @property
     def available(self) -> bool:
@@ -81,6 +84,8 @@ def decide_agenda(result: SourceResult, now: datetime, prefs: dict) -> AgendaDec
         today=today,
         all_day_today=[e for e in today_all if e.all_day],
         tomorrow=[e for e in tomorrow_all if not e.all_day],
+        # Only for a fresh answer: a stale one already says the whole agenda is old.
+        failed_calendars=list(result.facts.get("failed", [])) if result.status == FRESH else [],
     )
 
     upcoming = [e for e in today if e.start > now]
