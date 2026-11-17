@@ -29,7 +29,45 @@
     return list;
   }
 
+  function newsList(items, feedLabel) {
+    const list = el('ul', 'news');
+    for (const item of items) {
+      const row = el('li');
+      // Only real web links; anything else stays plain text.
+      const safe = item.link && /^https?:\/\//i.test(item.link);
+      const head = el(safe ? 'a' : 'span', 'news-title', item.title);
+      if (safe) {
+        head.href = item.link;
+        head.target = '_blank';
+        head.rel = 'noopener noreferrer';
+      }
+      const source = item.source === feedLabel ? '' : item.source;
+      row.append(head, el('span', 'where', [source, item.when].filter(Boolean).join(' · ')));
+      if (item.summary) row.append(el('span', 'news-summary', item.summary));
+      list.append(row);
+    }
+    return list;
+  }
+
   const panels = {
+    news(data) {
+      title.textContent = 'Nieuws';
+      const parts = [];
+      for (const p of data.positions) {
+        const box = el('section');
+        box.append(el('span', 'label', p.name + (p.move ? ' · ' + p.move : '')), newsList(p.items));
+        parts.push(box);
+      }
+      for (const feed of data.general) {
+        const box = el('section');
+        box.append(el('span', 'label', feed.label), newsList(feed.items, feed.label));
+        parts.push(box);
+      }
+      if (data.failed) parts.push(el('p', 'quiet small', data.failed));
+      parts.push(el('p', 'quiet small', data.note));
+      body.replaceChildren(...parts);
+    },
+
     agenda(data) {
       title.textContent = 'Agenda';
       // Name the calendar only when there is more than one; with one it is noise.

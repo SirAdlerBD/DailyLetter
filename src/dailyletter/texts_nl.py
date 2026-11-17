@@ -87,6 +87,12 @@ T = {
     "portfolio.concentrated": "{name} is {weight} van je portefeuille.",
     "portfolio.note": "Alleen lezen: DailyLetter kan niets kopen of verkopen. Bedragen blijven verborgen tot je op het oog tikt.",
 
+    # News
+    "news.top": "In {source}: {title}",
+    "news.mover": "Nieuws over {name}: {title}",
+    "news.failed": "Niet gelezen: {names}.",
+    "news.note": "Koppen uit je nieuwsfeeds en, als je dat aanzette, uit Google News per positie. Tik op een kop om het artikel te openen.",
+
     # Sport: short names for the session, used midday
     "session.easy_run": "een rustige run van {km} km",
     "session.short_run": "een korte rustige run van {km} km",
@@ -177,3 +183,14 @@ def short_when(moment: datetime, now: datetime) -> str:
     if moment.date() == now.date():
         return clock(moment)
     return f"{moment.day} {MONTHS[moment.month - 1]}, {clock(moment)}"
+
+
+HEADLINE_LENGTH = 150
+
+
+def headline(title: str) -> str:
+    """A feed title as the end of a sentence: cut to a calm length, closed with a period."""
+    text = " ".join(title.split())
+    if len(text) > HEADLINE_LENGTH:
+        text = text[: HEADLINE_LENGTH - 1].rsplit(" ", 1)[0] + "…"
+    return text if text[-1] in ".?!…\"”’'" else text + "."

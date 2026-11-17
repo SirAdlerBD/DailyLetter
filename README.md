@@ -14,7 +14,7 @@ Fase 0 en het eerste deel van fase 1 uit het conceptueel ontwerp:
 - Valt een bron uit, dan gebruikt het briefje het laatste goede antwoord en zegt het dat erbij.
 - Pagina met het briefje, een detailpaneel voor je agenda, het invulbalkje en een instellingenpagina.
 
-Nog niet: nieuws, de vraag en les van de dag, het taalmodel, taken, timer, eten, de avondvraag.
+Nog niet: de vraag en les van de dag, het taalmodel, taken, timer, eten, de avondvraag.
 
 ## Installeren op de server
 
@@ -125,6 +125,29 @@ Wat het briefje toont:
   en je grootste losse aandeel als dat boven 20% zit. Fondsen tellen daar niet mee.
 - Verloopt je Saxo-login, dan zegt het briefje dat. Log dan opnieuw in zoals bij je Saxo-MCP.
 
+## Nieuws
+
+Twee soorten bronnen, allebei gratis en zonder account:
+
+- **Je eigen RSS-feeds**, bijvoorbeeld van De Tijd. Toevoegen kan op de instellingenpagina of hier:
+
+  ```bash
+  .venv/bin/dailyletter news cedric add "De Tijd" https://…   # leest de feed eerst, bewaart pas als die werkt
+  .venv/bin/dailyletter news cedric                          # toon je feeds
+  .venv/bin/dailyletter news cedric test                     # lees ze nu allemaal één keer
+  .venv/bin/dailyletter news cedric remove "De Tijd"
+  ```
+
+- **Nieuws per positie** uit Google News, voor de aandelen in je Saxo-portefeuille (fondsen niet).
+  Standaard uit, omdat Google die feeds alleen toestaat voor persoonlijk, niet-commercieel gebruik.
+  Aanzetten kan op de instellingenpagina of met `dailyletter settings cedric news_position_search true`.
+
+Wat het briefje toont: de topkop van je eerste feed ('s ochtends en overdag, niet 's avonds), en
+nieuws over de positie die het meest bewoog, vlak onder de zin over je portefeuille. Alleen nieuws
+van de laatste 24 uur telt (op maandag sinds vrijdag), een kop over een positie moet die positie
+bij naam noemen, en hetzelfde verhaal komt nooit twee keer. In het paneel staan per bron een paar
+koppen met een link naar het artikel.
+
 ## Instellingen per gebruiker
 
 ```bash
@@ -143,6 +166,11 @@ Wat het briefje toont:
 | `default_run_km` | `5.0` | Afstand zolang er nog geen loopgeschiedenis is |
 | `portfolio_mover_pct` | `3.0` | Vanaf welke dagbeweging (in %) een positie genoemd wordt |
 | `portfolio_concentration_pct` | `20.0` | Vanaf welk gewicht (in %) je grootste losse aandeel vermeld wordt |
+| `news_position_search` | `false` | Nieuws per positie uit Google News |
+| `news_edition` | `BE:nl` | Welke Google News-editie: land:taal |
+| `news_max_positions` | `8` | Voor hoeveel posities er nieuws gezocht wordt |
+| `news_general_count` | `3` | Koppen per feed in het paneel |
+| `news_per_position` | `2` | Koppen per positie in het paneel |
 | `version_until` | 12u, 16u, 20u30 | Wanneer ochtend, middag en vooravond eindigen |
 
 ## Bijwerken op de server

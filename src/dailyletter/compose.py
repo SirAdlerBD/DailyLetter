@@ -10,6 +10,7 @@ from datetime import datetime
 
 from . import texts_nl as nl
 from .decide import AgendaDecision, Event
+from .decide_news import NewsDecision, NewsItem
 from .decide_portfolio import PortfolioDecision, last_session_word
 from .decide_sport import (
     EASY_RUN, LONG_RUN, RED, REST, SHORT_RUN, STRENGTH, UNKNOWN, Activity, Reason, SportDecision,
@@ -17,7 +18,7 @@ from .decide_sport import (
 from .sources.base import STALE
 
 FAR_MINUTES = 90
-ALLOWED_DETAILS = {None, "agenda", "sport", "portfolio", "settings"}
+ALLOWED_DETAILS = {None, "agenda", "sport", "portfolio", "news", "settings"}
 MAX_LINES = 10
 MAX_LINE_LENGTH = 240
 NOTE_COMPUTED = "Herstel en belasting zijn berekend door je Garmin-MCP, niet door Garmins eigen Training Readiness."
@@ -316,6 +317,44 @@ def _portfolio_details(pf: PortfolioDecision, version: str, now: datetime) -> di
     }
 
 
+# --- news -------------------------------------------------------------------
+
+def _news_lines(version: str, news: NewsDecision, pf: PortfolioDecision, portfolio_lines: list[dict]) -> list[dict]:
+    if not news.available:
+        return []
+    lines = []
+    # News about the position that moved: only right under the sentence that names that move.
+    named = portfolio_lines and pf.movers and news.mover and news.mover.name == pf.movers[0].name
+    if named and version in ("morning", "evening"):
+        item = news.mover.items[0]
+        lines.append(_line("news_mover", nl.T["news.mover"].format(name=news.mover.name, title=nl.headline(item.title)), "news"))
+    # The top story during the day; the evening stays quiet.
+    if news.top and version != "evening":
+        lines.append(_line("news", nl.T["news.top"].format(source=news.top.source, title=nl.headline(news.top.title)), "news"))
+    return lines
+
+
+def _news_item_view(item: NewsItem, now: datetime) -> dict:
+    when = nl.short_when(item.published.astimezone(now.tzinfo), now) if item.published else ""
+    return {"title": item.title, "link": item.link, "source": item.source, "when": when, "summary": item.summary}
+
+
+def _news_details(news: NewsDecision, now: datetime) -> dict:
+    return {
+        "positions": [
+            {
+                "name": p.name,
+                "move": nl.signed_pct(p.move) if p.move is not None else "",
+                "items": [_news_item_view(i, now) for i in p.items],
+            }
+            for p in news.positions
+        ],
+        "general": [{"label": label, "items": [_news_item_view(i, now) for i in items]} for label, items in news.general],
+        "failed": nl.T["news.failed"].format(names=nl.join_names(news.failed)) if news.failed else "",
+        "note": nl.T["news.note"],
+    }
+
+
 def write_from_templates(
     version: str,
     now: datetime,
@@ -324,9 +363,11 @@ def write_from_templates(
     prefs: dict,
     sport: SportDecision | None = None,
     portfolio: PortfolioDecision | None = None,
+    news: NewsDecision | None = None,
 ) -> dict:
     sport = sport or SportDecision(status="missing")
     portfolio = portfolio or PortfolioDecision(status="missing")
+    news = news or NewsDecision(status="missing")
     lines = [_line("greeting", nl.GREETING[version].format(name=display_name))]
 
     if version == "morning":
@@ -352,7 +393,11 @@ def write_from_templates(
                 names=nl.join_names(agenda.failed_calendars)), "settings"))
 
     lines += _sport_lines(version, sport)
-    lines += _portfolio_lines(version, portfolio, now)
+    portfolio_lines = _portfolio_lines(version, portfolio, now)
+    lines += portfolio_lines
+    lines += _news_lines(version, news, portfolio, portfolio_lines)
+    # News comes last, so on a very full day it is what makes room.
+    lines = lines[:MAX_LINES]
 
     details = {}
     if agenda.available:
@@ -364,6 +409,8 @@ def write_from_templates(
         details["sport"] = _sport_details(sport, now)
     if portfolio.available and (portfolio.holdings or portfolio.total_value is not None):
         details["portfolio"] = _portfolio_details(portfolio, version, now)
+    if news.available:
+        details["news"] = _news_details(news, now)
 
     return {
         "version": version,
@@ -373,7 +420,7 @@ def write_from_templates(
         "generated_label": nl.clock(now),
         "lines": lines,
         "details": details,
-        "sources": {"agenda": agenda.status, "garmin": sport.status, "saxo": portfolio.status},
+        "sources": {"agenda": agenda.status, "garmin": sport.status, "saxo": portfolio.status, "news": news.status},
     }
 
 

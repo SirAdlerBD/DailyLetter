@@ -162,6 +162,59 @@ def cmd_settings(args, settings) -> int:
     return 0
 
 
+def cmd_news(args, settings) -> int:
+    from .sources import news_rss
+
+    conn = _conn(settings)
+    user = db.get_user(conn, args.user)
+    if user is None:
+        print(f"Gebruiker {args.user!r} bestaat niet.", file=sys.stderr)
+        return 1
+    feeds = news_rss.load_feeds(db.get_setting(conn, user["id"], "news_feeds", []))
+
+    if args.action == "add":
+        if not args.label or not args.url:
+            print('Gebruik: dailyletter news <gebruiker> add "Naam" https://…', file=sys.stderr)
+            return 1
+        try:
+            items = news_rss.check_feed(args.url, args.label)
+        except Exception as exc:
+            print(f"Die feed is niet te lezen ({type(exc).__name__}). Er is niets bewaard.", file=sys.stderr)
+            return 1
+        try:
+            feeds = news_rss.add_feed(feeds, args.label, args.url)
+        except ValueError as exc:
+            print(f"Niet bewaard: {exc}.", file=sys.stderr)
+            return 1
+        db.set_setting(conn, user["id"], "news_feeds", feeds)
+        first = f' De eerste kop: "{items[0]["title"]}".' if items else ""
+        print(f"Bewaard: {args.label}, {len(items)} berichten gevonden.{first}")
+    elif args.action == "remove":
+        kept = news_rss.remove_feed(feeds, args.label or "")
+        if len(kept) == len(feeds):
+            print(f"Geen feed met de naam {args.label!r}.", file=sys.stderr)
+            return 1
+        db.set_setting(conn, user["id"], "news_feeds", kept)
+        print(f"Verwijderd: {args.label}.")
+    elif args.action == "test":
+        for feed in feeds:
+            try:
+                items = news_rss.check_feed(feed["url"], feed["label"])
+                print(f"{feed['label']}: {len(items)} berichten" + (f', bv. "{items[0]["title"]}"' if items else ""))
+            except Exception as exc:
+                print(f"{feed['label']}: niet te lezen ({type(exc).__name__})")
+        if not feeds:
+            print("Nog geen feeds.")
+    else:
+        for feed in feeds:
+            print(f"{feed['label']}: {feed['url']}")
+        if not feeds:
+            print("Nog geen feeds.")
+        search = db.get_setting(conn, user["id"], "news_position_search", False)
+        print(f"Google News per positie: {'aan' if search else 'uit'}")
+    return 0
+
+
 def cmd_run(args, settings) -> int:
     conn = _conn(settings)
     users = db.list_users(conn) if args.user is None else [db.get_user(conn, args.user)]
@@ -223,6 +276,13 @@ def main(argv: list[str] | None = None) -> int:
     prefs.add_argument("key", nargs="?", help="bijvoorbeeld long_run_day")
     prefs.add_argument("value", nargs="?", help="de nieuwe waarde; leeg laten zet de standaard terug")
     prefs.set_defaults(func=cmd_settings)
+
+    news = sub.add_parser("news", help="nieuwsfeeds tonen, toevoegen, verwijderen of testen")
+    news.add_argument("user")
+    news.add_argument("action", nargs="?", choices=["list", "add", "remove", "test"], default="list")
+    news.add_argument("label", nargs="?", help='de naam van de feed, bijvoorbeeld "De Tijd"')
+    news.add_argument("url", nargs="?", help="add: het adres van de feed")
+    news.set_defaults(func=cmd_news)
 
     run = sub.add_parser("run", help="maak een briefje (de batchjob)")
     run.add_argument("--user", help="alleen deze gebruiker; standaard iedereen")

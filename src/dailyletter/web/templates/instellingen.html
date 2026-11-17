@@ -18,6 +18,11 @@
 
     {% if message == 'agenda' %}<p class="note" role="status">Agenda bewaard. Er staat een nieuw briefje klaar.</p>{% endif %}
     {% if message == 'verwijderd' %}<p class="note" role="status">Agenda verwijderd.</p>{% endif %}
+    {% if message == 'nieuws' %}<p class="note" role="status">Nieuws bewaard. Er staat een nieuw briefje klaar.</p>{% endif %}
+    {% if message == 'nieuws_weg' %}<p class="note" role="status">Feed verwijderd.</p>{% endif %}
+    {% if error == 'feed_url' %}<p class="note" role="alert">Dat adres werkt niet. Een feedadres begint met https://.</p>{% endif %}
+    {% if error == 'feed_max' %}<p class="note" role="alert">Je kunt hoogstens {{ max_feeds }} feeds koppelen.</p>{% endif %}
+    {% if error == 'feed_read' %}<p class="note" role="alert">Op dat adres staat geen leesbare feed. Er is niets bewaard.</p>{% endif %}
     {% if error == 'url' %}<p class="note" role="alert">Dat adres werkt niet. Het moet met https:// of webcal:// beginnen.</p>{% endif %}
     {% if error == 'max' %}<p class="note" role="alert">Je kunt hoogstens {{ max_calendars }} agenda's koppelen.</p>{% endif %}
     {% if error == 'key' %}<p class="note" role="alert">De server heeft nog geen geldige DAILYLETTER_SECRET_KEY. Zet die eerst in het bestand .env.</p>{% endif %}
@@ -75,6 +80,43 @@
         <p>Nog niet gekoppeld.</p>
         <p class="quiet small">Koppelen gebeurt op de server: <code>dailyletter connect {{ user_name }} saxo --from-env ~/saxo-mcp-live/.env</code></p>
       {% endif %}
+    </div>
+
+    <div class="block">
+      <span class="label">Nieuws</span>
+      {% if feeds %}
+        <ul class="calendars">
+          {% for name in feeds %}
+          <li>
+            <span>{{ name }}</span>
+            <form method="post" action="/instellingen/nieuws/verwijder">
+              <input type="hidden" name="index" value="{{ loop.index0 }}">
+              <button class="pill" type="submit" aria-label="Verwijder {{ name }}">Verwijder</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Nog geen nieuwsfeeds.</p>
+      {% endif %}
+
+      <form method="post" action="/instellingen/nieuws" class="stack">
+        <span class="label">Feed toevoegen</span>
+        <label for="feed-label" class="quiet small">Naam van de bron.</label>
+        <input id="feed-label" name="label" type="text" maxlength="40" autocomplete="off" placeholder="bijvoorbeeld De Tijd">
+        <label for="feed-url" class="quiet small">Adres van de RSS-feed. Het briefje leest het eerst één keer om te kijken of het werkt.</label>
+        <input id="feed-url" name="url" type="url" required autocomplete="off" placeholder="https://…">
+        <button class="pill dark" type="submit">Voeg toe</button>
+      </form>
+
+      <form method="post" action="/instellingen/nieuws/posities" class="stack">
+        <span class="label">Nieuws over je posities</span>
+        <p>{{ 'Staat aan.' if position_search else 'Staat uit.' }}</p>
+        <p class="quiet small">Zoekt per aandeel in je portefeuille in Google News. Fondsen tellen niet mee.
+          Google staat dat alleen toe voor persoonlijk, niet-commercieel gebruik.</p>
+        <input type="hidden" name="aan" value="{{ '0' if position_search else '1' }}">
+        <button class="pill" type="submit">{{ 'Zet uit' if position_search else 'Zet aan' }}</button>
+      </form>
     </div>
 
     <div class="block">

@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import crypto, db, pipeline
 from ..config import Settings, get_settings
-from ..sources import agenda_ical
+from ..sources import agenda_ical, news_rss
 from ..sources.agenda_ical import InvalidCalendarUrl, TooManyCalendars
 
 HERE = Path(__file__).parent
@@ -132,6 +132,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "calendars": [c["label"] for c in calendars],
                 "garmin_connected": db.get_connection(conn, user["id"], "garmin") is not None,
                 "saxo_connected": db.get_connection(conn, user["id"], "saxo") is not None,
+                "feeds": [f["label"] for f in news_rss.load_feeds(db.get_setting(conn, user["id"], "news_feeds", []))],
+                "position_search": db.get_setting(conn, user["id"], "news_position_search", False),
+                "max_feeds": news_rss.MAX_FEEDS,
                 "user_name": user["name"],
                 "max_calendars": agenda_ical.MAX_CALENDARS,
                 "message": request.query_params.get("m"),
@@ -166,5 +169,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if calendars:
             pipeline.run_for_user(conn, settings, user)
         return RedirectResponse("/instellingen?m=verwijderd", status_code=303)
+
+    def read_feeds(conn: sqlite3.Connection, user_id: int) -> list[dict]:
+        return news_rss.load_feeds(db.get_setting(conn, user_id, "news_feeds", []))
+
+    @app.post("/instellingen/nieuws")
+    def add_news(url: str = Form(...), label: str = Form(""), conn=Depends(get_conn), user=Depends(current_user)):
+        try:
+            feeds = news_rss.add_feed(read_feeds(conn, user["id"]), label, url)
+        except news_rss.InvalidFeedUrl:
+            return RedirectResponse("/instellingen?e=feed_url", status_code=303)
+        except news_rss.TooManyFeeds:
+            return RedirectResponse("/instellingen?e=feed_max", status_code=303)
+        try:
+            news_rss.check_feed(url, label)
+        except Exception:  # not a readable feed: tell the user, keep nothing
+            return RedirectResponse("/instellingen?e=feed_read", status_code=303)
+        db.set_setting(conn, user["id"], "news_feeds", feeds)
+        pipeline.run_for_user(conn, settings, user)
+        return RedirectResponse("/instellingen?m=nieuws", status_code=303)
+
+    @app.post("/instellingen/nieuws/verwijder")
+    def remove_news(index: int = Form(...), conn=Depends(get_conn), user=Depends(current_user)):
+        feeds = read_feeds(conn, user["id"])
+        if 0 <= index < len(feeds):
+            db.set_setting(conn, user["id"], "news_feeds", feeds[:index] + feeds[index + 1:])
+            pipeline.run_for_user(conn, settings, user)
+        return RedirectResponse("/instellingen?m=nieuws_weg", status_code=303)
+
+    @app.post("/instellingen/nieuws/posities")
+    def toggle_position_news(aan: str = Form(...), conn=Depends(get_conn), user=Depends(current_user)):
+        db.set_setting(conn, user["id"], "news_position_search", aan == "1")
+        pipeline.run_for_user(conn, settings, user)
+        return RedirectResponse("/instellingen?m=nieuws", status_code=303)
 
     return app
