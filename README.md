@@ -5,16 +5,18 @@ Een batchjob maakt het briefje, een web-app toont het.
 
 ## Wat werkt nu
 
-Fase 0 en het eerste deel van fase 1 uit het conceptueel ontwerp:
-
 - Database met gebruikers, versleutelde koppelingen, instellingen, briefjes en je invoer.
-- Batchjob: verzamelen, beslissen, schrijven, controleren, bewaren.
-- Eén echte bron: je agenda, via een geheim iCal-adres.
-- Vier versies per dag (ochtend, middag, vooravond, avond), in vaste sjabloonzinnen.
+- Batchjob: verzamelen, beslissen, schrijven, controleren, bewaren. Vier versies per dag, in vaste sjabloonzinnen.
+- Bronnen: je agenda's (iCal), Garmin (slaap, herstel, trainingen), Saxo (portefeuille, alleen lezen) en nieuws (RSS).
 - Valt een bron uit, dan gebruikt het briefje het laatste goede antwoord en zegt het dat erbij.
-- Pagina met het briefje, een detailpaneel voor je agenda, het invulbalkje en een instellingenpagina.
+- Pagina met het briefje, detailpanelen, het invulbalkje en een instellingenpagina.
+- Op je gsm: op het beginscherm, met meldingen en een widget.
 
 Nog niet: de vraag en les van de dag, het taalmodel, taken, timer, eten, de avondvraag.
+
+Het volledige plan, met de volgende stappen en de open vragen, staat in [docs/PLAN.md](docs/PLAN.md).
+Alle afhankelijkheden en koppelingen staan in [docs/INTEGRATIES.md](docs/INTEGRATIES.md). Verder bouwen
+met een AI-assistent? Laat die eerst [AGENTS.md](AGENTS.md) lezen.
 
 ## Installeren op de server
 
